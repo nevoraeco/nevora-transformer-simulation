@@ -184,7 +184,7 @@ export default function SimulatorUI({ inputs, setInputs, results }: SimulatorPro
           
           <div className="lg:col-span-2 bg-white border-l-4 border-[#b8881a] rounded-r-2xl border-y border-r border-[#dddbd5] p-6 flex flex-col justify-between shadow-sm">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div className="p-3 bg-[#f7f6f2] rounded-xl"><span className="block text-[11px] text-[#6b6b7a] mb-1">Total Users</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#b8881a]">{inputs.ev77_3kw || (inputs.ev74_3kw + inputs.ev74_5kw)}</span></div>
+              <div className="p-3 bg-[#f7f6f2] rounded-xl"><span className="block text-[11px] text-[#6b6b7a] mb-1">Total Users</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#b8881a]">{inputs.ev74_3kw || (inputs.ev74_3kw + inputs.ev74_5kw)}</span></div>
               <div className="p-3 bg-[#f7f6f2] rounded-xl"><span className="block text-[11px] text-[#6b6b7a] mb-1">Peak Demand</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#0f1f3d]">{results.peak74.toFixed(1)}%</span></div>
               <div className="p-3 bg-[#f7f6f2] rounded-xl"><span className="block text-[11px] text-[#6b6b7a] mb-1">Transformer Load</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#c0392b]">{results.tfpct74.toFixed(1)}%</span></div>
               <div className="p-3 bg-[#f7f6f2] rounded-xl"><span className="block text-[11px] text-[#6b6b7a] mb-1">Headroom</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#0f1f3d]">{results.headroom74.toFixed(0)} kW</span></div>
