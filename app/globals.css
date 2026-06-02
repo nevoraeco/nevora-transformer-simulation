@@ -1,0 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0f1f3d;
+  --color-teal: #0a6e5c;
+  --color-gold: #c9a84c;
+  --color-amber: #d4890a;
+  --color-red: #c0392b;
+  --color-surface: #f7f6f2;
+}
