@@ -41,7 +41,10 @@ export default function SimulatorUI({ inputs, setInputs, results }: SimulatorPro
   };
 
   const handleNumTransformersChange = (val: number) => {
-    const count = Math.max(1, val);
+    Math.max(0, val);
+    Math.min(20, val); 
+    const count = Math.min(20, Math.max(0, val)); 
+
     setInputs(prev => {
       const newKVAs = [...prev.transformerKVAs];
       while (newKVAs.length < count) newKVAs.push(0);
@@ -74,7 +77,8 @@ export default function SimulatorUI({ inputs, setInputs, results }: SimulatorPro
                 <input
                   type="number"
                   min="1"
-                  value={inputs.numTransformers || ''}
+                  max="20"
+                  value={inputs.numTransformers === 0 ? '': inputs.numTransformers}
                   onChange={(e) => handleNumTransformersChange(parseInt(e.target.value) || 1)}
                   className="w-full h-12 border-[1.5px] border-[#dddbd5] rounded-xl px-4 font-['JetBrains_Mono'] text-[15px] font-semibold text-[#0f1f3d] bg-[#f7f6f2] focus:bg-white focus:border-[#0a6e5c] focus:ring-4 focus:ring-[#0a6e5c]/10 outline-none transition-all"
                 />
@@ -184,7 +188,7 @@ export default function SimulatorUI({ inputs, setInputs, results }: SimulatorPro
           
           <div className="lg:col-span-2 bg-white border-l-4 border-[#b8881a] rounded-r-2xl border-y border-r border-[#dddbd5] p-6 flex flex-col justify-between shadow-sm">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div className="p-3 bg-[#f7f6f2] rounded-xl"><span className="block text-[11px] text-[#6b6b7a] mb-1">Total Users</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#b8881a]">{inputs.ev74_3kw || (inputs.ev74_3kw + inputs.ev74_5kw)}</span></div>
+              <div className="p-3 bg-[#f7f6f2] rounded-xl"><span className="block text-[11px] text-[#6b6b7a] mb-1">Total Users</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#b8881a]">{(inputs.ev74_3kw || 0 + inputs.ev74_5kw || 0)}</span></div>
               <div className="p-3 bg-[#f7f6f2] rounded-xl"><span className="block text-[11px] text-[#6b6b7a] mb-1">Peak Demand</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#0f1f3d]">{results.peak74.toFixed(1)}%</span></div>
               <div className="p-3 bg-[#f7f6f2] rounded-xl"><span className="block text-[11px] text-[#6b6b7a] mb-1">Transformer Load</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#c0392b]">{results.tfpct74.toFixed(1)}%</span></div>
               <div className="p-3 bg-[#f7f6f2] rounded-xl"><span className="block text-[11px] text-[#6b6b7a] mb-1">Headroom</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#0f1f3d]">{results.headroom74.toFixed(0)} kW</span></div>
