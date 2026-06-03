@@ -26,7 +26,7 @@ const binomialCDF = (n: number, k: number, p: number) => {
 export default function WhyItMatters({ inputs, results, communityData }: WhyProps) {
   const totalEV = Math.max(inputs.ev33_3kw + inputs.ev33_5kw, inputs.ev74_3kw + inputs.ev74_5kw);
   const totalFlats = inputs.flats3kw + inputs.flats5kw;
-  const tipping = inputs.maxExtra33 > 0 ? inputs.maxExtra33 : inputs.maxExtra74;
+  const tipping = results.maxExtra33 > 0 ? results.maxExtra33 : results.maxExtra74;
   
   // Guard against empty state
   if (totalEV === 0) {
