@@ -28,7 +28,7 @@ export default function SimulatorApp() {
     bg3noev: 0.8, bg3ev: 1.0, bg5noev: 1.5, bg5ev: 1.8,
     enh33_3kw: 2, ev33_3kw: 0, enh33_5kw: 0, ev33_5kw: 0,
     enh74_3kw: 7, ev74_3kw: 0, enh74_5kw: 5, ev74_5kw: 0,
-  });
+  } as SimInputs);
 
   const results = useMemo(() => calculateHeadroom(inputs), [inputs]);
 
@@ -56,23 +56,23 @@ export default function SimulatorApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f6f2] font-['DM_Sans'] text-[#1a1a2e] selection:bg-[#0a6e5c] selection:text-white pb-20">
+    <div className="min-h-screen bg-[#090A0F] font-['DM_Sans'] text-[#e2e8f0] selection:bg-[#10B981] selection:text-[#090A0F] pb-20">
       
-      {/* GLOBAL HEADER */}
-      <header className="bg-[#0f1f3d] w-full py-4 px-8 border-b border-white/10 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3 font-['JetBrains_Mono'] text-[11px] tracking-[3px] text-[#c9a84c] uppercase">
-          <Zap size={14} className="text-[#c9a84c]" />
+      {/* GLOBAL HEADER - Premium Dark */}
+      <header className="bg-[#090A0F] w-full py-5 px-8 border-b border-[#2D323F] flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-3 font-['JetBrains_Mono'] text-[11px] tracking-[3px] text-[#10B981] uppercase font-semibold">
+          <Zap size={14} className="text-[#10B981]" strokeWidth={1.5} />
           Nevora Ecovolt
         </div>
         {step === 2 && (
           <div className="flex items-center gap-4">
-             <div className="text-white/70 text-sm font-medium hidden md:block">{communityData.communityName}</div>
+             <div className="text-[#94A3B8] text-sm font-medium hidden md:block">{communityData.communityName}</div>
              <button 
                 onClick={handleGenerateReport} 
                 disabled={isSubmitting}
-                className="bg-[#0a6e5c] text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[#0d8a74] transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="bg-[#10B981] hover:bg-[#059669] text-[#090A0F] px-5 py-2.5 rounded-md text-xs font-semibold transition-all duration-200 disabled:opacity-50 flex items-center gap-2 border border-[#10B981]/20 shadow-lg shadow-[#10B981]/10"
               >
-                <UploadCloud size={14} />
+                <UploadCloud size={14} strokeWidth={1.5} />
                 {isSubmitting ? 'Syncing...' : 'Generate Proposal'}
               </button>
           </div>
@@ -85,10 +85,10 @@ export default function SimulatorApp() {
         )}
 
         {step === 2 && (
-          <div className="max-w-[1200px] mx-auto mt-0 bg-white shadow-xl min-h-[80vh] border-x border-b border-[#dddbd5]">
+          <div className="max-w-[1400px] mx-auto mt-0 bg-[#121318] shadow-2xl min-h-[80vh] border border-[#2D323F]">
             
-            {/* 5-TAB NAVIGATION */}
-            <nav className="flex bg-[#1b3260] overflow-x-auto">
+            {/* 5-TAB NAVIGATION - Premium Dark */}
+            <nav className="flex bg-[#090A0F] border-b border-[#2D323F] overflow-x-auto">
               {[
                 { id: 'simulator', label: 'Simulator', icon: Settings },
                 { id: 'tip33', label: '3.3 kW Tipping Point', icon: LineChart },
@@ -99,36 +99,36 @@ export default function SimulatorApp() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
+                  className={`flex items-center gap-2 px-6 py-4 text-xs font-medium whitespace-nowrap transition-all border-b-2 font-['JetBrains_Mono'] tracking-wider ${
                     activeTab === tab.id 
-                      ? 'text-[#c9a84c] border-[#c9a84c] bg-[#0f1f3d]' 
-                      : 'text-white/50 border-transparent hover:text-white/80 hover:bg-[#0f1f3d]/50'
+                      ? 'text-[#10B981] border-[#10B981] bg-[#1A1D26]/50 shadow-[0_0_12px_rgba(16,185,129,0.15)]' 
+                      : 'text-[#94A3B8] border-transparent hover:text-[#cbd5e1] hover:bg-[#1A1D26]/20'
                   }`}
                 >
-                  <tab.icon size={16} />
+                  <tab.icon size={16} strokeWidth={1.5} />
                   {tab.label}
                 </button>
               ))}
             </nav>
 
             {/* TAB CONTENT AREAS */}
-            <div className="p-8 md:p-12">
+            <div className="p-8 md:p-12 bg-[#121318]">
               {activeTab === 'simulator' && (
                 <SimulatorUI inputs={inputs} setInputs={setInputs} results={results} />
               )}
               
               {activeTab === 'tip33' && (
                 <div className="animate-fadeUp">
-                  <h2 className="text-3xl font-['DM_Serif_Display'] text-[#0f1f3d] mb-2">Scenario A: 3.3 kW Charger</h2>
-                  <p className="text-[#6b6b7a] mb-8">Each row shows transformer load when exactly N EV users are charging simultaneously.</p>
+                  <h2 className="text-3xl font-['Montserrat'] font-bold text-[#e2e8f0] mb-2 tracking-tight">Scenario A: 3.3 kW Charger</h2>
+                  <p className="text-[#94A3B8] mb-8 text-sm font-light">Each row shows transformer load when exactly N EV users are charging simultaneously.</p>
                   <TippingPointChart inputs={inputs} results={results} scenario={3.3} />
                 </div>
               )}
 
               {activeTab === 'tip74' && (
                 <div className="animate-fadeUp">
-                  <h2 className="text-3xl font-['DM_Serif_Display'] text-[#0f1f3d] mb-2">Scenario B: 7.4 kW Charger</h2>
-                  <p className="text-[#6b6b7a] mb-8">Each row shows transformer load when exactly N EV users are charging simultaneously.</p>
+                  <h2 className="text-3xl font-['Montserrat'] font-bold text-[#e2e8f0] mb-2 tracking-tight">Scenario B: 7.4 kW Charger</h2>
+                  <p className="text-[#94A3B8] mb-8 text-sm font-light">Each row shows transformer load when exactly N EV users are charging simultaneously.</p>
                   <TippingPointChart inputs={inputs} results={results} scenario={7.4} />
                 </div>
               )}

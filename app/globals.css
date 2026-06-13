@@ -1,12 +1,48 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
 
 @import "tailwindcss";
 
 @theme {
-  --color-navy: #0f1f3d;
-  --color-teal: #0a6e5c;
-  --color-gold: #c9a84c;
-  --color-amber: #d4890a;
-  --color-red: #c0392b;
-  --color-surface: #f7f6f2;
+  /* Premium Dark Theme - Quiet Luxury */
+  --color-obsidian: #090A0F;
+  --color-dark-charcoal: #121318;
+  --color-container: #1A1D26;
+  --color-border: #2D323F;
+  --color-emerald: #10B981;
+  --color-emerald-dark: #0A6E5C;
+  --color-silver: #94A3B8;
+  --color-amber: #D97706;
+  --color-crimson: #EF4444;
+  
+  /* Legacy (for backwards compatibility) */
+  --color-navy: #090A0F;
+  --color-teal: #10B981;
+  --color-gold: #10B981;
+  --color-red: #EF4444;
+  --color-surface: #090A0F;
+}
+
+/* Global Typography & Premium Styling */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-obsidian);
+  color: #e2e8f0;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.3px;
+}
+
+/* Selection styling */
+::selection {
+  background-color: var(--color-emerald);
+  color: white;
+}
+
+/* Smooth transitions throughout */
+* {
+  transition-property: background-color, border-color, color, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
 }
