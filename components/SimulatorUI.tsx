@@ -1,51 +1,40 @@
-import React from 'react';
-import { SimInputs, SimResults } from '../lib/calculator';
+"use client";
 
-interface SimulatorProps {
+import React from "react";
+import { AlertTriangle, CheckCircle, XCircle, Zap } from "lucide-react";
+import { SimInputs, SimResults } from "../lib/calculator";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
+import { cn } from "../lib/utils";
+
+interface SimulatorUIProps {
   inputs: SimInputs;
   setInputs: React.Dispatch<React.SetStateAction<SimInputs>>;
   results: SimResults;
 }
 
-// FIX: Moving InputGroup OUTSIDE the main component stops it from recreating on every keystroke, permanently fixing the focus bug.
-const InputGroup = ({ 
-  label, 
-  unit, 
-  value, 
-  onChange 
-}: { 
-  label: string, 
-  unit: string, 
-  value: number, 
-  onChange: (val: number) => void 
-}) => (
-  <div className="flex flex-col gap-2">
-    <label className="text-xs font-medium text-[#94A3B8] tracking-[0.3px]">{label}</label>
-    <div className="relative">
-      <input
-        type="number"
-        value={value === 0 ? '' : value}
-        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        className="w-full h-12 border-[1.5px] border-[#2D323F] rounded-lg px-4 font-['JetBrains_Mono'] text-[15px] font-semibold text-[#e2e8f0] bg-[#0A0C12] hover:bg-[#121318] focus:bg-[#1A1D26] focus:border-[#10B981] focus:ring-4 focus:ring-[#10B981]/15 outline-none transition-all placeholder:text-[#475569]"
-        placeholder="0"
-      />
-      <span className="absolute right-4 top-3.5 text-[11px] text-[#94A3B8] font-['JetBrains_Mono']">{unit}</span>
-    </div>
-  </div>
-);
-
-export default function SimulatorUI({ inputs, setInputs, results }: SimulatorProps) {
+/**
+ * Enterprise Simulator Dashboard
+ * Connects the mathematical engine to the atomic UI primitives,
+ * offering a flawless, theme-aware configuration interface.
+ */
+export default function SimulatorUI({ inputs, setInputs, results }: SimulatorUIProps) {
   
-  const handleGenericChange = (key: keyof SimInputs, value: number) => {
-    setInputs(prev => ({ ...prev, [key]: value }));
+  // High-performance state updater
+  const updateInput = (key: keyof SimInputs, val: string | number) => {
+    setInputs((prev) => ({
+      ...prev,
+      [key]: val === "" ? 0 : Number(val),
+    }));
   };
 
-  const handleNumTransformersChange = (val: number) => {
-    Math.max(0, val);
-    Math.min(20, val); 
-    const count = Math.min(20, Math.max(0, val)); 
-
-    setInputs(prev => {
+  // Safe handler for dynamic transformer array
+  const handleNumTransformers = (rawVal: string) => {
+    const val = rawVal === "" ? 0 : parseInt(rawVal);
+    const count = Math.min(20, Math.max(0, val)); // Hard cap at 20
+    
+    setInputs((prev) => {
       const newKVAs = [...prev.transformerKVAs];
       while (newKVAs.length < count) newKVAs.push(0);
       if (newKVAs.length > count) newKVAs.splice(count);
@@ -53,189 +42,296 @@ export default function SimulatorUI({ inputs, setInputs, results }: SimulatorPro
     });
   };
 
-  const handleTransformerCapacityChange = (index: number, val: number) => {
-    setInputs(prev => {
+  const updateKVA = (index: number, rawVal: string) => {
+    setInputs((prev) => {
       const newKVAs = [...prev.transformerKVAs];
-      newKVAs[index] = val;
+      newKVAs[index] = rawVal === "" ? 0 : Number(rawVal);
       return { ...prev, transformerKVAs: newKVAs };
     });
   };
 
+  // Status computation for UI banners
+  const validationStatus = (() => {
+    const bgLoad = inputs.sanctionedLoad || 0;
+    if (results.usableKW === 0) return "unconfigured";
+    if (bgLoad > results.usableKW) return "critical";
+    if (bgLoad > results.usableKW * 0.85) return "warning";
+    return "safe";
+  })();
+
   return (
-    <div className="space-y-12 animate-fadeUp">
+    <div className="space-y-8 animate-in fade-in duration-500">
       
-      {/* SECTION 1: Transformer & Building Profile */}
-      <div>
-        <p className="font-['JetBrains_Mono'] text-[10px] tracking-[3px] uppercase text-[#94A3B8] mb-2 font-semibold">Section 01</p>
-        <h2 className="font-['Montserrat'] font-bold text-[22px] text-[#e2e8f0] mb-6 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-[#2D323F]">Transformer Setup</h2>
-        
-        <div className="bg-[#1A1D26] rounded-xl border border-[#2D323F] shadow-lg p-6 md:p-8 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-medium text-[#94A3B8] tracking-[0.3px]">Number of Transformers</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={inputs.numTransformers === 0 ? '': inputs.numTransformers}
-                  onChange={(e) => handleNumTransformersChange(parseInt(e.target.value) || 1)}
-                  className="w-full h-12 border-[1.5px] border-[#2D323F] rounded-lg px-4 font-['JetBrains_Mono'] text-[15px] font-semibold text-[#e2e8f0] bg-[#0A0C12] hover:bg-[#121318] focus:bg-[#1A1D26] focus:border-[#10B981] focus:ring-4 focus:ring-[#10B981]/15 outline-none transition-all placeholder:text-[#475569]"
-                />
-                <span className="absolute right-4 top-3.5 text-[11px] text-[#94A3B8] font-['JetBrains_Mono']">units</span>
+      {/* SECTION 01: TRANSFORMER CONFIG */}
+      <Card>
+        <CardHeader className="flex flex-row items-center gap-3 pb-4">
+          <Badge variant="outline" className="text-emerald border-emerald/40 font-mono">01</Badge>
+          <CardTitle className="text-sm uppercase tracking-widest text-muted-foreground">
+            Transformer Infrastructure Setup
+          </CardTitle>
+          <div className="flex-1 h-px bg-border ml-4" />
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                No. of Transformers (Max 20)
+              </label>
+              <Input
+                type="number"
+                min="0"
+                max="20"
+                className="font-mono"
+                value={inputs.numTransformers || ""}
+                onChange={(e) => handleNumTransformers(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Power Factor
+              </label>
+              <Input
+                type="number"
+                step="0.01"
+                className="font-mono"
+                value={inputs.powerFactor || ""}
+                onChange={(e) => updateInput("powerFactor", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Safety Buffer (%)
+              </label>
+              <Input
+                type="number"
+                className="font-mono"
+                value={inputs.buffer || ""}
+                onChange={(e) => updateInput("buffer", e.target.value)}
+              />
+            </div>
+          </div>
+
+          {inputs.numTransformers > 0 && (
+            <div className="pt-4 border-t border-border/50">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4 block">
+                Individual Transformer Ratings (kVA)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                {inputs.transformerKVAs.map((kva, idx) => (
+                  <div key={idx} className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground pointer-events-none">
+                      T{idx + 1}
+                    </span>
+                    <Input
+                      type="number"
+                      className="font-mono pl-9"
+                      value={kva || ""}
+                      onChange={(e) => updateKVA(idx, e.target.value)}
+                      placeholder="kVA"
+                    />
+                  </div>
+                ))}
               </div>
             </div>
-            <InputGroup label="Power Factor" unit="ratio" value={inputs.powerFactor} onChange={(val) => handleGenericChange('powerFactor', val)} />
-            <InputGroup label="Safety Buffer" unit="%" value={inputs.buffer} onChange={(val) => handleGenericChange('buffer', val)} />
-          </div>
+          )}
+        </CardContent>
+      </Card>
 
-          {/* DYNAMIC INDIVIDUAL CAPACITY FIELDS */}
-          <div className="p-5 bg-[#0A0C12] rounded-lg border border-[#2D323F]">
-            <h3 className="text-xs font-bold text-[#e2e8f0] uppercase tracking-[1.5px] mb-4">Specify Transformer Loads</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {inputs.transformerKVAs.map((kva, index) => (
-                <div key={index} className="flex flex-col gap-2">
-                  <label className="text-[11px] font-semibold text-[#94A3B8]">Transformer {index + 1} Capacity</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={kva === 0 ? '' : kva}
-                      onChange={(e) => handleTransformerCapacityChange(index, parseFloat(e.target.value) || 0)}
-                      className="w-full h-10 border border-[#2D323F] rounded-md px-3 font-['JetBrains_Mono'] text-[14px] font-semibold text-[#e2e8f0] bg-[#0A0C12] hover:bg-[#121318] focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20 outline-none transition-all placeholder:text-[#475569]"
-                      placeholder="e.g. 250"
-                    />
-                    <span className="absolute right-3 top-2.5 text-[10px] text-[#94A3B8] font-['JetBrains_Mono']">kVA</span>
-                  </div>
+      {/* SECTION 02: VALIDATION BANNER & SANCTIONED LOAD */}
+      <Card>
+        <CardHeader className="flex flex-row items-center gap-3 pb-4">
+          <Badge variant="outline" className="text-emerald border-emerald/40 font-mono">02</Badge>
+          <CardTitle className="text-sm uppercase tracking-widest text-muted-foreground">
+            Sanctioned Load Metrics
+          </CardTitle>
+          <div className="flex-1 h-px bg-border ml-4" />
+        </CardHeader>
+        <CardContent>
+          
+          {/* Dynamic Validation Banners */}
+          <div className="mb-8">
+            {validationStatus === "safe" && (
+              <div className="flex items-center gap-3 rounded-lg border border-emerald/30 bg-emerald/10 p-4">
+                <CheckCircle size={18} className="text-emerald shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold tracking-wide text-emerald">SYSTEM VALIDATED — ADEQUATE HEADROOM</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Sanctioned load is within the safe operating envelope. Usable Capacity: <span className="font-mono text-emerald">{results.usableKW.toFixed(1)} kW</span>.
+                  </p>
                 </div>
-              ))}
+              </div>
+            )}
+            {validationStatus === "warning" && (
+              <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4">
+                <AlertTriangle size={18} className="text-warning shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold tracking-wide text-warning">CAUTION — APPROACHING CAPACITY LIMIT</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Sanctioned load is above the 85% operational threshold.</p>
+                </div>
+              </div>
+            )}
+            {validationStatus === "critical" && (
+              <div className="flex items-center gap-3 rounded-lg border border-danger/30 bg-danger/10 p-4">
+                <XCircle size={18} className="text-danger shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold tracking-wide text-danger">CRITICAL — EXCEEDS USABLE CAPACITY</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Declared load exceeds safe usable capacity. Transformer is undersized.</p>
+                </div>
+              </div>
+            )}
+            {validationStatus === "unconfigured" && (
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
+                <Zap size={18} className="text-muted-foreground shrink-0" />
+                <p className="text-sm text-muted-foreground">Configure transformer parameters above to enable validation.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Manual Sanctioned Load (kW)
+              </label>
+              <Input
+                type="number"
+                className="font-mono"
+                placeholder="Leave blank for auto-calc"
+                value={inputs.sanctionedLoad || ""}
+                onChange={(e) => updateInput("sanctionedLoad", e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Common Meters</label>
+                <Input
+                  type="number"
+                  className="font-mono"
+                  value={inputs.commonMeters || ""}
+                  onChange={(e) => updateInput("commonMeters", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Avg Load (kW)</label>
+                <Input
+                  type="number"
+                  className="font-mono"
+                  value={inputs.commonLoad || ""}
+                  onChange={(e) => updateInput("commonLoad", e.target.value)}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* SECTION 2: Connected Load Profile */}
-      <div>
-        <p className="font-['JetBrains_Mono'] text-[10px] tracking-[3px] uppercase text-[#94A3B8] mb-2 font-semibold">Section 02</p>
-        <h2 className="font-['Montserrat'] font-bold text-[22px] text-[#e2e8f0] mb-6 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-[#2D323F]">Sanctioned Community Load</h2>
-        <div className="bg-[#1A1D26] rounded-xl border border-[#2D323F] shadow-lg p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <InputGroup label="3 kW Sanctioned Flats" unit="flats" value={inputs.flats3kw} onChange={(val) => handleGenericChange('flats3kw', val)} />
-          <InputGroup label="5 kW Sanctioned Flats" unit="flats" value={inputs.flats5kw} onChange={(val) => handleGenericChange('flats5kw', val)} />
-          <InputGroup label="Common Meters" unit="meters" value={inputs.commonMeters} onChange={(val) => handleGenericChange('commonMeters', val)} />
-          <InputGroup label="Common Load (per meter)" unit="kW" value={inputs.commonLoad} onChange={(val) => handleGenericChange('commonLoad', val)} />
-        </div>
-      </div>
-
-      {/* LIVE METRICS DASHBOARD */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-[#0A6E5C] to-[#10B981] rounded-xl p-6 shadow-lg text-white border border-[#10B981]/20">
-          <div className="text-[11px] opacity-80 font-medium mb-2 font-['JetBrains_Mono'] tracking-wide">Usable Grid Capacity</div>
-          <div className="font-['Montserrat'] font-bold text-3xl">{results.usable.toFixed(1)} kW</div>
-          <div className="text-[10px] opacity-60 font-['JetBrains_Mono'] mt-1">Net capacity available</div>
-        </div>
-        <div className="bg-[#0A0C12] rounded-xl p-6 shadow-lg text-[#e2e8f0] border border-[#2D323F]">
-          <div className="text-[11px] opacity-70 font-medium mb-2 font-['JetBrains_Mono'] tracking-wide">Total Connected Load</div>
-          <div className="font-['Montserrat'] font-bold text-3xl">{results.connected.toFixed(1)} kW</div>
-          <div className="text-[10px] opacity-50 font-['JetBrains_Mono'] mt-1">Total allocation</div>
-        </div>
-        <div className="bg-[#1A1D26] border border-[#2D323F] rounded-xl p-6 shadow-lg text-[#e2e8f0]">
-          <div className="text-[11px] text-[#94A3B8] font-medium mb-2 font-['JetBrains_Mono'] tracking-wide">Baseline Diversity Factor</div>
-          <div className="font-['Montserrat'] font-bold text-3xl">{results.divBase.toFixed(2)}</div>
-          <div className="text-[10px] text-[#94A3B8] font-['JetBrains_Mono'] mt-1">connected ÷ usable</div>
-        </div>
-        <div className="bg-[#1A1D26] border border-[#2D323F] rounded-xl p-6 shadow-lg text-[#e2e8f0]">
-          <div className="text-[11px] text-[#94A3B8] font-medium mb-2 font-['JetBrains_Mono'] tracking-wide">Current Peak Demand Estimate</div>
-          <div className="font-['Montserrat'] font-bold text-3xl">{results.bescom.toFixed(1)}%</div>
-          <div className="text-[10px] text-[#94A3B8] font-['JetBrains_Mono'] mt-1">Pre-EV utilization</div>
-        </div>
-      </div>
-
-      {/* SECTION 3: Scenario A (3.3 kW) */}
-      <div>
-        <p className="font-['JetBrains_Mono'] text-[10px] tracking-[3px] uppercase text-[#94A3B8] mb-2 font-semibold">Section 03</p>
-        <h2 className="font-['Montserrat'] font-bold text-[22px] text-[#e2e8f0] mb-6 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-[#2D323F]">Scenario A: 3.3 kW Slow Charging Impact</h2>
+      {/* SECTIONS 03 & 04: SCENARIO ANALYSIS SUBPANELS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 bg-[#1A1D26] rounded-xl border border-[#2D323F] p-6 space-y-4 shadow-lg">
-            <InputGroup label="3 kW Flats EV Users" unit="users" value={inputs.ev33_3kw} onChange={(val) => handleGenericChange('ev33_3kw', val)} />
-            <InputGroup label="5 kW Flats EV Users" unit="users" value={inputs.ev33_5kw} onChange={(val) => handleGenericChange('ev33_5kw', val)} />
-          </div>
-          
-          <div className="lg:col-span-2 bg-[#1A1D26] border-l-4 border-[#10B981] rounded-r-xl border-y border-r border-[#2D323F] p-6 flex flex-col justify-between shadow-lg">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div className="p-3 bg-[#0A0C12] rounded-lg"><span className="block text-[11px] text-[#94A3B8] mb-1">Total Users</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#10B981]">{inputs.ev33_3kw + inputs.ev33_5kw}</span></div>
-              <div className="p-3 bg-[#0A0C12] rounded-lg"><span className="block text-[11px] text-[#94A3B8] mb-1">Peak Demand</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#e2e8f0]">{results.peak33.toFixed(1)}%</span></div>
-              <div className="p-3 bg-[#0A0C12] rounded-lg"><span className="block text-[11px] text-[#94A3B8] mb-1">Transformer Load</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#EF4444]">{results.tfpct33.toFixed(1)}%</span></div>
-              <div className="p-3 bg-[#0A0C12] rounded-lg"><span className="block text-[11px] text-[#94A3B8] mb-1">Headroom</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#e2e8f0]">{results.headroom33.toFixed(0)} kW</span></div>
+        {/* SCENARIO A: 3.3 kW Setup */}
+        <Card className="border-emerald/30">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold uppercase tracking-widest text-emerald flex items-center gap-2">
+                <div className="h-4 w-1 bg-emerald rounded-full" />
+                Scenario A
+              </CardTitle>
+              <Badge variant="outline" className="text-emerald border-emerald/30 font-mono">3.3 kW / EV</Badge>
             </div>
-            <div className="mt-4 bg-[#0A0C12] p-4 rounded-lg border border-[#2D323F] flex justify-between items-center text-sm">
-              <span className="text-[#94A3B8]">Additional concurrent users supported before overload:</span>
-              <span className="font-['JetBrains_Mono'] font-bold text-[#EF4444] text-base">{results.maxExtra33}</span>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* 3 kW Flats */}
+            <div className="space-y-2 rounded-lg bg-gray-50/50 dark:bg-obsidian-surface p-4 border border-border">
+              <div className="text-xs font-mono text-muted-foreground mb-3">Standard Block (3 kW Base)</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground block mb-1">Total Flats</label>
+                  <Input type="number" className="h-8 text-xs font-mono" value={inputs.flats3kw || ""} onChange={(e) => updateInput("flats3kw", e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground block mb-1">Active EVs</label>
+                  <Input type="number" className="h-8 text-xs font-mono" value={inputs.ev33_3kw || ""} max={inputs.flats3kw} onChange={(e) => updateInput("ev33_3kw", e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-emerald block mb-1">Add Load (kW)</label>
+                  <Input type="number" step="0.1" className="h-8 text-xs font-mono border-emerald/50 focus-visible:ring-emerald" value={inputs.enh33_3kw || ""} onChange={(e) => updateInput("enh33_3kw", e.target.value)} />
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 4: Scenario B (7.4 kW) */}
-      <div>
-        <p className="font-['JetBrains_Mono'] text-[10px] tracking-[3px] uppercase text-[#94A3B8] mb-2 font-semibold">Section 04</p>
-        <h2 className="font-['Montserrat'] font-bold text-[22px] text-[#e2e8f0] mb-6 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-[#2D323F]">Scenario B: 7.4 kW Premium Fast Charging Impact</h2>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 bg-[#1A1D26] rounded-xl border border-[#2D323F] p-6 space-y-4 shadow-lg">
-            <InputGroup label="3 kW Flats EV Users" unit="users" value={inputs.ev74_3kw} onChange={(val) => handleGenericChange('ev74_3kw', val)} />
-            <InputGroup label="5 kW Flats EV Users" unit="users" value={inputs.ev74_5kw} onChange={(val) => handleGenericChange('ev74_5kw', val)} />
-          </div>
-          
-          <div className="lg:col-span-2 bg-[#1A1D26] border-l-4 border-[#D97706] rounded-r-xl border-y border-r border-[#2D323F] p-6 flex flex-col justify-between shadow-lg">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div className="p-3 bg-[#0A0C12] rounded-lg"><span className="block text-[11px] text-[#94A3B8] mb-1">Total Users</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#D97706]">{(inputs.ev74_3kw || 0 + inputs.ev74_5kw || 0)}</span></div>
-              <div className="p-3 bg-[#0A0C12] rounded-lg"><span className="block text-[11px] text-[#94A3B8] mb-1">Peak Demand</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#e2e8f0]">{results.peak74.toFixed(1)}%</span></div>
-              <div className="p-3 bg-[#0A0C12] rounded-lg"><span className="block text-[11px] text-[#94A3B8] mb-1">Transformer Load</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#EF4444]">{results.tfpct74.toFixed(1)}%</span></div>
-              <div className="p-3 bg-[#0A0C12] rounded-lg"><span className="block text-[11px] text-[#94A3B8] mb-1">Headroom</span><span className="font-['JetBrains_Mono'] font-bold text-lg text-[#e2e8f0]">{results.headroom74.toFixed(0)} kW</span></div>
-            </div>
-            <div className="mt-4 bg-[#0A0C12] p-4 rounded-lg border border-[#2D323F] flex justify-between items-center text-sm">
-              <span className="text-[#94A3B8]">Additional concurrent users supported before overload:</span>
-              <span className="font-['JetBrains_Mono'] font-bold text-[#EF4444] text-base">{results.maxExtra74}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 5: Financial Risk Analysis Framework */}
-      <div>
-        <p className="font-['JetBrains_Mono'] text-[10px] tracking-[3px] uppercase text-[#94A3B8] mb-2 font-semibold">Section 05</p>
-        <h2 className="font-['Montserrat'] font-bold text-[22px] text-[#e2e8f0] mb-6 flex items-center gap-3 after:content-[''] after:flex-1 after:h-px after:bg-[#2D323F]">Infrastructure Risk & Cost Verdict</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-gradient-to-br from-[#1A1D26] to-[#0A0C12] rounded-xl p-6 md:p-8 text-[#e2e8f0] shadow-xl relative overflow-hidden border border-[#10B981]/30">
-            <div className="absolute top-4 right-4 bg-[#10B981] text-[#090A0F] text-[9px] font-bold tracking-wider uppercase px-3 py-1.5 rounded-md">Recommended</div>
-            <h3 className="text-sm font-['JetBrains_Mono'] tracking-[1.5px] uppercase text-[#10B981] mb-1 font-semibold">Option A — EcoVolt Managed Architecture</h3>
-            <p className="text-xs text-[#94A3B8] mb-6">Smart Load Balancing & Controlled Infrastructure Scalability</p>
-            <div className="text-4xl font-['Montserrat'] font-bold text-[#e2e8f0] mb-4">₹0 <span className="text-sm font-['DM_Sans'] text-[#94A3B8] font-light">RWA Capital Expenditure</span></div>
             
-            <ul className="space-y-3 text-[13px] text-[#cbd5e1] border-t border-[#2D323F] pt-4">
-              <li className="flex items-center gap-2"><span className="text-[#10B981] font-bold text-lg leading-none">✓</span> Per-user smart device deployment</li>
-              <li className="flex items-center gap-2"><span className="text-[#10B981] font-bold text-lg leading-none">✓</span> Automated cloud load shedding schedules</li>
-              <li className="flex items-center gap-2"><span className="text-[#10B981] font-bold text-lg leading-none">✓</span> Eliminates localized peak risk entirely</li>
-              <li className="flex items-center gap-2"><span className="text-[#10B981] font-bold text-lg leading-none">✓</span> Secure energy billing & automated settlement</li>
-            </ul>
-          </div>
+            {/* 5 kW Flats */}
+            <div className="space-y-2 rounded-lg bg-gray-50/50 dark:bg-obsidian-surface p-4 border border-border">
+              <div className="text-xs font-mono text-muted-foreground mb-3">Premium Block (5 kW Base)</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground block mb-1">Total Flats</label>
+                  <Input type="number" className="h-8 text-xs font-mono" value={inputs.flats5kw || ""} onChange={(e) => updateInput("flats5kw", e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground block mb-1">Active EVs</label>
+                  <Input type="number" className="h-8 text-xs font-mono" value={inputs.ev33_5kw || ""} max={inputs.flats5kw} onChange={(e) => updateInput("ev33_5kw", e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-emerald block mb-1">Add Load (kW)</label>
+                  <Input type="number" step="0.1" className="h-8 text-xs font-mono border-emerald/50 focus-visible:ring-emerald" value={inputs.enh33_5kw || ""} onChange={(e) => updateInput("enh33_5kw", e.target.value)} />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="bg-[#1A1D26] border border-[#2D323F] rounded-xl p-6 md:p-8 shadow-lg relative overflow-hidden">
-            <h3 className="text-sm font-['JetBrains_Mono'] tracking-[1.5px] uppercase text-[#94A3B8] mb-1 font-semibold">Option B — Unmanaged (Do Nothing)</h3>
-            <p className="text-xs text-[#94A3B8] mb-6">Uncoordinated Charger Installations & Individual Additions</p>
-            <div className="text-4xl font-['Montserrat'] font-bold text-[#EF4444] mb-4">₹8L - ₹20L <span className="text-sm font-['DM_Sans'] text-[#94A3B8] font-light">Forced Emergency Upgrade</span></div>
-            
-            <ul className="space-y-3 text-[13px] text-[#cbd5e1] border-t border-[#2D323F] pt-4">
-              <li className="flex items-center gap-2"><span className="text-[#EF4444] font-bold text-lg leading-none">✗</span> Sudden transformer burnout on peak evening hours</li>
-              <li className="flex items-center gap-2"><span className="text-[#EF4444] font-bold text-lg leading-none">✗</span> 4 to 12 weeks of complete blackout downtime during replacement</li>
-              <li className="flex items-center gap-2"><span className="text-[#EF4444] font-bold text-lg leading-none">✗</span> Commercial penalties & mandatory technical reassessment</li>
-              <li className="flex items-center gap-2"><span className="text-[#EF4444] font-bold text-lg leading-none">✗</span> Legal & liability disputes due to infrastructure degradation</li>
-            </ul>
-          </div>
-        </div>
+        {/* SCENARIO B: 7.4 kW Setup */}
+        <Card className="border-danger/30">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold uppercase tracking-widest text-danger flex items-center gap-2">
+                <div className="h-4 w-1 bg-danger rounded-full" />
+                Scenario B
+              </CardTitle>
+              <Badge variant="outline" className="text-danger border-danger/30 font-mono">7.4 kW / EV</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* 3 kW Flats */}
+            <div className="space-y-2 rounded-lg bg-gray-50/50 dark:bg-obsidian-surface p-4 border border-border">
+              <div className="text-xs font-mono text-muted-foreground mb-3">Standard Block (3 kW Base)</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground block mb-1">Total Flats</label>
+                  <Input type="number" disabled className="h-8 text-xs font-mono bg-gray-100 dark:bg-card/50" value={inputs.flats3kw || ""} />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground block mb-1">Active EVs</label>
+                  <Input type="number" className="h-8 text-xs font-mono" value={inputs.ev74_3kw || ""} max={inputs.flats3kw} onChange={(e) => updateInput("ev74_3kw", e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-danger block mb-1">Add Load (kW)</label>
+                  <Input type="number" step="0.1" className="h-8 text-xs font-mono border-danger/50 focus-visible:ring-danger" value={inputs.enh74_3kw || ""} onChange={(e) => updateInput("enh74_3kw", e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* 5 kW Flats */}
+            <div className="space-y-2 rounded-lg bg-gray-50/50 dark:bg-obsidian-surface p-4 border border-border">
+              <div className="text-xs font-mono text-muted-foreground mb-3">Premium Block (5 kW Base)</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground block mb-1">Total Flats</label>
+                  <Input type="number" disabled className="h-8 text-xs font-mono bg-gray-100 dark:bg-card/50" value={inputs.flats5kw || ""} />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground block mb-1">Active EVs</label>
+                  <Input type="number" className="h-8 text-xs font-mono" value={inputs.ev74_5kw || ""} max={inputs.flats5kw} onChange={(e) => updateInput("ev74_5kw", e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-danger block mb-1">Add Load (kW)</label>
+                  <Input type="number" step="0.1" className="h-8 text-xs font-mono border-danger/50 focus-visible:ring-danger" value={inputs.enh74_5kw || ""} onChange={(e) => updateInput("enh74_5kw", e.target.value)} />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
       </div>
-
     </div>
   );
 }

@@ -1,57 +1,127 @@
 import React from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
+
+export interface CommunityData {
+  communityName: string;
+  address: string;
+  totalFlats: string | number;
+  operatorId: string;
+}
 
 interface GateProps {
-  communityData: { communityName: string; address: string; totalFlats: string };
-  setCommunityData: (data: any) => void;
+  communityData: CommunityData;
+  setCommunityData: React.Dispatch<React.SetStateAction<CommunityData>>;
   onNext: () => void;
 }
 
 export default function CommunityGate({ communityData, setCommunityData, onNext }: GateProps) {
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onNext();
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-10 bg-[#1A1D26] rounded-2xl shadow-[0_12px_48px_rgba(16,185,129,0.1)] border border-[#2D323F]">
-      <div className="text-[11px] font-['JetBrains_Mono'] tracking-[3px] text-[#10B981] uppercase mb-4 font-semibold">Nevora Ecovolt</div>
-      <h1 className="text-3xl font-['Montserrat'] font-bold text-[#e2e8f0] mb-8 leading-tight tracking-tight">Initialize Infrastructure Analysis</h1>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-xs font-semibold text-[#94A3B8] tracking-wide mb-2">Community Name</label>
-          <input 
-            required
-            className="w-full h-12 border-[1.5px] border-[#2D323F] rounded-lg px-4 font-['JetBrains_Mono'] text-sm text-[#e2e8f0] bg-[#0A0C12] hover:bg-[#121318] focus:bg-[#1A1D26] focus:border-[#10B981] focus:ring-4 focus:ring-[#10B981]/15 outline-none transition-all placeholder:text-[#475569]"
-            value={communityData.communityName}
-            onChange={e => setCommunityData({...communityData, communityName: e.target.value})}
-            placeholder="e.g. Prestige Shantiniketan"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-[#94A3B8] tracking-wide mb-2">Location / Address</label>
-          <input 
-            required
-            className="w-full h-12 border-[1.5px] border-[#2D323F] rounded-lg px-4 font-['JetBrains_Mono'] text-sm text-[#e2e8f0] bg-[#0A0C12] hover:bg-[#121318] focus:bg-[#1A1D26] focus:border-[#10B981] focus:ring-4 focus:ring-[#10B981]/15 outline-none transition-all placeholder:text-[#475569]"
-            value={communityData.address}
-            onChange={e => setCommunityData({...communityData, address: e.target.value})}
-            placeholder="e.g. Whitefield, Bengaluru"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-[#94A3B8] tracking-wide mb-2">Total Flats</label>
-          <input 
-            required
-            type="number"
-            className="w-full h-12 border-[1.5px] border-[#2D323F] rounded-lg px-4 font-['JetBrains_Mono'] text-sm text-[#e2e8f0] bg-[#0A0C12] hover:bg-[#121318] focus:bg-[#1A1D26] focus:border-[#10B981] focus:ring-4 focus:ring-[#10B981]/15 outline-none transition-all placeholder:text-[#475569]"
-            value={communityData.totalFlats}
-            onChange={e => setCommunityData({...communityData, totalFlats: e.target.value})}
-          />
-        </div>
-        <button type="submit" className="w-full mt-4 bg-[#10B981] hover:bg-[#059669] text-[#090A0F] py-4 rounded-lg font-['Montserrat'] font-semibold tracking-wide shadow-[0_4px_16px_rgba(16,185,129,0.3)] transition-all transform active:scale-[0.98] border border-[#10B981]/20">
-          Enter Simulator
-        </button>
-      </form>
+    <div className="mx-auto mt-12 w-full max-w-md md:mt-24 px-4 sm:px-0">
+      <Card className="border-border shadow-lg transition-all duration-300">
+        <CardHeader className="space-y-2 pb-8">
+          <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald">
+            Nevora Ecovolt
+          </div>
+          <CardTitle className="text-3xl font-bold leading-tight tracking-tight">
+            Initialize Assessment
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* Field: Operator Selection */}
+            <div className="space-y-2">
+              <label 
+                htmlFor="operatorId" 
+                className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+              >
+                Authorised Operator
+              </label>
+              {/* Custom styled select matching the Input primitive */}
+              <div className="relative">
+                <select
+                  id="operatorId"
+                  required
+                  value={communityData.operatorId}
+                  onChange={(e) => setCommunityData(prev => ({ ...prev, operatorId: e.target.value }))}
+                  className="flex h-10 w-full appearance-none rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground transition-all duration-200 ease-in-out focus-visible:border-emerald focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald dark:bg-card"
+                >
+                  <option value="" disabled>Select Operator</option>
+                  <option value="Hemanth J. (CTO)">Nihaal - NT</option>
+                  <option value="Elvis J. (BD & Strategy)">Elvis - EJ</option>
+                  <option value="Nihaal (Operations)">Hemanth - HJ</option>
+                </select>
+                {/* Custom dropdown arrow */}
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="communityName" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Community Name
+              </label>
+              <Input
+                id="communityName"
+                required
+                className="font-mono"
+                placeholder="e.g. Prestige Shantiniketan"
+                value={communityData.communityName}
+                onChange={(e) => setCommunityData(prev => ({ ...prev, communityName: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="address" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Location / Address
+              </label>
+              <Input
+                id="address"
+                required
+                className="font-mono"
+                placeholder="e.g. Whitefield, Bengaluru"
+                value={communityData.address}
+                onChange={(e) => setCommunityData(prev => ({ ...prev, address: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="totalFlats" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Total Flats
+              </label>
+              <Input
+                id="totalFlats"
+                required
+                type="number"
+                min="1"
+                className="font-mono"
+                placeholder="e.g. 150"
+                value={communityData.totalFlats}
+                onChange={(e) => setCommunityData(prev => ({ ...prev, totalFlats: e.target.value }))}
+              />
+            </div>
+
+            <div className="pt-2">
+              <Button type="submit" size="lg" className="w-full font-heading font-semibold tracking-wide">
+                Secure & Initialize
+              </Button>
+            </div>
+
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

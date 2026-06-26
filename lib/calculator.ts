@@ -3,121 +3,107 @@ export interface SimInputs {
   transformerKVAs: number[];
   powerFactor: number;
   buffer: number;
-  sanctionedLoad: number;
+  
+  // Base Infrastructure
   flats3kw: number;
   flats5kw: number;
   commonMeters: number;
-  commonLoad: number;
-  bg3noev: number;
-  bg3ev: number;
-  bg5noev: number;
-  bg5ev: number;
-  enh33_3kw: number;
+  commonLoad: number; // Avg load per common meter
+  sanctionedLoad: number; // Manual override field
+
+  // Scenario A: 3.3kW System
   ev33_3kw: number;
-  enh33_5kw: number;
+  enh33_3kw: number; // e.g., 2kW load enhancement
   ev33_5kw: number;
-  enh74_3kw: number;
+  enh33_5kw: number; // e.g., 2kW load enhancement
+
+  // Scenario B: 7.4kW System
   ev74_3kw: number;
-  enh74_5kw: number;
+  enh74_3kw: number; // e.g., 7kW load enhancement
   ev74_5kw: number;
+  enh74_5kw: number; // e.g., 7kW load enhancement
 }
 
 export interface SimResults {
   totalKVA: number;
-  usable: number;
-  connected: number;
-  divBase: number;
-  bescom: number;
-  total33: number;
-  peak33: number;
-  tfpct33: number;
-  headroom33: number;
-  maxExtra33: number;
-  total74: number;
-  peak74: number;
-  tfpct74: number;
-  headroom74: number;
-  maxExtra74: number;
+  usableKW: number;
+  baseMaxDemand: number;
+  baseActualDemand: number;
+  spareCapacityKW: number;
+  
+  // Scenario A Outputs
+  evActualDemand33: number;
+  totalSystemLoad33: number;
+  capacityUsed33Pct: number;
+  maxConcurrentUsers33: number;
+
+  // Scenario B Outputs
+  evActualDemand74: number;
+  totalSystemLoad74: number;
+  capacityUsed74Pct: number;
+  maxConcurrentUsers74: number;
 }
 
 export function calculateHeadroom(inputs: SimInputs): SimResults {
+  // 1. TRANSFORMER USABLE CAPACITY (Matches Sheet: kVA * PF * Safety Buffer)
   const totalKVA = inputs.transformerKVAs.reduce((sum, val) => sum + val, 0);
-  const usable = totalKVA * inputs.powerFactor * (1 - inputs.buffer / 100);
+  const usableKW = totalKVA * inputs.powerFactor * (1 - inputs.buffer / 100);
 
-  // If user entered a manual overarching sanctioned load, use it; otherwise compute from units
-  const connected = inputs.sanctionedLoad > 0 
+  // 2. BASELINE APARTMENT DEMAND
+  const flatLoad = (inputs.flats3kw * 3) + (inputs.flats5kw * 5);
+  const commonTotalLoad = inputs.commonMeters * inputs.commonLoad;
+  
+  const baseMaxDemand = inputs.sanctionedLoad > 0 
     ? inputs.sanctionedLoad 
-    : (inputs.flats3kw * 3) + (inputs.flats5kw * 5);
+    : (flatLoad + commonTotalLoad);
+    
+  // Proprietary Diversity Factor: 0.5 for apartments
+  const baseActualDemand = baseMaxDemand * 0.5;
+  const spareCapacityKW = Math.max(0, usableKW - baseActualDemand);
 
-  const totalFlats = inputs.flats3kw + inputs.flats5kw;
+  // 3. SCENARIO A: 3.3 kW ARCHITECTURE
+  // Proprietary Diversity Factor: 0.7 for EV Load Enhancement
+  const evDemand33_3kw = inputs.ev33_3kw * inputs.enh33_3kw * 0.7;
+  const evDemand33_5kw = inputs.ev33_5kw * inputs.enh33_5kw * 0.7;
+  const evActualDemand33 = evDemand33_3kw + evDemand33_5kw;
   
-  // Diversity factor curve logic
-  let divBase = 2.0;
-  if (totalFlats > 100) divBase = 3.2;
-  else if (totalFlats > 50) divBase = 2.8;
-  else if (totalFlats > 20) divBase = 2.4;
-
-  const commonLoadSum = inputs.commonMeters * inputs.commonLoad;
-  const baselineDemandkW = divBase > 0 ? (connected / divBase) + commonLoadSum : commonLoadSum;
-  const bescom = usable > 0 ? (baselineDemandkW / usable) * 100 : 0;
-
-  // SCENARIO A: 3.3 kW Calculations with Load Enhancement additions
-  const evTotalUsers33 = inputs.ev33_3kw + inputs.ev33_5kw;
-  // Background loads + charger drawing limits + user designated extra load enhancements
-  const load33_3kw = inputs.ev33_3kw * (3.3 + inputs.bg3ev + inputs.enh33_3kw);
-  const load33_5kw = inputs.ev33_5kw * (3.3 + inputs.bg5ev + inputs.enh33_5kw);
-  const bgRemain33 = ((inputs.flats3kw - inputs.ev33_3kw) * inputs.bg3noev) + ((inputs.flats5kw - inputs.ev33_5kw) * inputs.bg5noev);
-  const total33 = load33_3kw + load33_5kw + bgRemain33 + commonLoadSum;
+  const totalSystemLoad33 = baseActualDemand + evActualDemand33;
+  const capacityUsed33Pct = usableKW > 0 ? (totalSystemLoad33 / usableKW) * 100 : 0;
   
-  const tfpct33 = usable > 0 ? (total33 / usable) * 100 : 0;
-  const peak33 = tfpct33;
-  const headroom33 = Math.max(0, usable - total33);
+  // Calculate max users before tripping (using the 3kW flat enhancement as baseline reference)
+  // Fallback to 2kW if user left enhancement at 0 to prevent Infinity errors
+  const avgEnhancementDemand33 = (inputs.enh33_3kw || 2) * 0.7;
+  const maxConcurrentUsers33 = avgEnhancementDemand33 > 0 
+    ? Math.floor(spareCapacityKW / avgEnhancementDemand33) 
+    : 0;
 
-  // Maximum Concurrent Users calculation loop
-  let maxExtra33 = 0;
-  for (let n = 1; n <= 500; n++) {
-    const share3 = evTotalUsers33 > 0 ? (inputs.ev33_3kw / evTotalUsers33) : 0.5;
-    const share5 = evTotalUsers33 > 0 ? (inputs.ev33_5kw / evTotalUsers33) : 0.5;
-    const currentSimLoad = (n * share3 * (3.3 + inputs.bg3ev + inputs.enh33_3kw)) + 
-                           (n * share5 * (3.3 + inputs.bg5ev + inputs.enh33_5kw)) + 
-                           (((inputs.flats3kw - (n * share3)) * inputs.bg3noev)) +
-                           (((inputs.flats5kw - (n * share5)) * inputs.bg5noev)) + commonLoadSum;
-    if (currentSimLoad > usable) {
-      maxExtra33 = n - 1;
-      break;
-    }
-    maxExtra33 = n;
-  }
+  // 4. SCENARIO B: 7.4 kW ARCHITECTURE
+  const evDemand74_3kw = inputs.ev74_3kw * inputs.enh74_3kw * 0.7;
+  const evDemand74_5kw = inputs.ev74_5kw * inputs.enh74_5kw * 0.7;
+  const evActualDemand74 = evDemand74_3kw + evDemand74_5kw;
 
-  // SCENARIO B: 7.4 kW Calculations with Load Enhancement additions
-  const evTotalUsers74 = inputs.ev74_3kw + inputs.ev74_5kw;
-  const load74_3kw = inputs.ev74_3kw * (7.4 + inputs.bg3ev + inputs.enh74_3kw);
-  const load74_5kw = inputs.ev74_5kw * (7.4 + inputs.bg5ev + inputs.enh74_5kw);
-  const bgRemain74 = ((inputs.flats3kw - inputs.ev74_3kw) * inputs.bg3noev) + ((inputs.flats5kw - inputs.ev74_5kw) * inputs.bg5noev);
-  const total74 = load74_3kw + load74_5kw + bgRemain74 + commonLoadSum;
+  const totalSystemLoad74 = baseActualDemand + evActualDemand74;
+  const capacityUsed74Pct = usableKW > 0 ? (totalSystemLoad74 / usableKW) * 100 : 0;
 
-  const tfpct74 = usable > 0 ? (total74 / usable) * 100 : 0;
-  const peak74 = tfpct74;
-  const headroom74 = Math.max(0, usable - total74);
-
-  let maxExtra74 = 0;
-  for (let n = 1; n <= 500; n++) {
-    const share3 = evTotalUsers74 > 0 ? (inputs.ev74_3kw / evTotalUsers74) : 0.5;
-    const share5 = evTotalUsers74 > 0 ? (inputs.ev74_5kw / evTotalUsers74) : 0.5;
-    const currentSimLoad = (n * share3 * (7.4 + inputs.bg3ev + inputs.enh74_3kw)) + 
-                           (n * share5 * (7.4 + inputs.bg5ev + inputs.enh74_5kw)) + 
-                           (((inputs.flats3kw - (n * share3)) * inputs.bg3noev)) +
-                           (((inputs.flats5kw - (n * share5)) * inputs.bg5noev)) + commonLoadSum;
-    if (currentSimLoad > usable) {
-      maxExtra74 = n - 1;
-      break;
-    }
-    maxExtra74 = n;
-  }
+  // Fallback to 7kW if user left enhancement at 0
+  const avgEnhancementDemand74 = (inputs.enh74_3kw || 7) * 0.7;
+  const maxConcurrentUsers74 = avgEnhancementDemand74 > 0 
+    ? Math.floor(spareCapacityKW / avgEnhancementDemand74) 
+    : 0;
 
   return {
-    totalKVA, usable, connected, divBase, bescom,
-    total33, peak33, tfpct33, headroom33, maxExtra33: Math.max(0, maxExtra33),
-    total74, peak74, tfpct74, headroom74, maxExtra74: Math.max(0, maxExtra74)
+    totalKVA,
+    usableKW,
+    baseMaxDemand,
+    baseActualDemand,
+    spareCapacityKW,
+    evActualDemand33,
+    totalSystemLoad33,
+    capacityUsed33Pct,
+    maxConcurrentUsers33,
+    evActualDemand74,
+    totalSystemLoad74,
+    capacityUsed74Pct,
+    maxConcurrentUsers74
   };
 }

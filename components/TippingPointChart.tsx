@@ -1,112 +1,309 @@
-import React, { useMemo } from 'react';
-import { SimInputs, SimResults } from '../lib/calculator';
-import { CheckCircle2, AlertCircle, AlertTriangle, XOctagon } from 'lucide-react';
+"use client";
+
+import React from "react";
+import { AlertTriangle, CheckCircle, XCircle, TrendingUp } from "lucide-react";
+import { SimInputs, SimResults } from "../lib/calculator";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { cn } from "../lib/utils";
 
 interface TippingPointProps {
+  scenario: "A" | "B";
   inputs: SimInputs;
   results: SimResults;
-  scenario: 3.3 | 7.4;
 }
 
-export default function TippingPointChart({ inputs, results, scenario }: TippingPointProps) {
-  const { rows, tippingAt, totalUsers } = useMemo(() => {
-    const tableRows = [];
-    const evTotal3 = scenario === 3.3 ? inputs.ev33_3kw : inputs.ev74_3kw;
-    const evTotal5 = scenario === 3.3 ? inputs.ev33_5kw : inputs.ev74_5kw;
-    const totalUsers = evTotal3 + evTotal5;
-    const maxSweep = Math.max(totalUsers, 30);
+interface TipRow {
+  n: number;
+  evLoad: number;
+  bgLoad: number;
+  totalLoad: number;
+  pct: number;
+  status: "SAFE" | "WARNING" | "OVERLOAD";
+}
+
+// 1. Predictive Math Engine (Matches proprietary 0.7 diversity logic)
+function buildTable(
+  usable: number,
+  bgLoad: number,
+  avgEnhancement: number,
+  maxRows: number
+): TipRow[] {
+  return Array.from({ length: maxRows + 1 }, (_, n) => {
+    // Each user adds their scaled enhancement demand
+    const evLoad = n * avgEnhancement;
+    const totalLoad = bgLoad + evLoad;
+    const pct = usable > 0 ? (totalLoad / usable) * 100 : 0;
+    const status: TipRow["status"] =
+      pct >= 100 ? "OVERLOAD" : pct >= 85 ? "WARNING" : "SAFE";
     
-    let tippingFound = false;
-    let tippingAt: number | null = null;
-    const commonLoad = inputs.commonMeters * inputs.commonLoad;
+    return { n, evLoad, bgLoad, totalLoad, pct, status };
+  });
+}
 
-    for (let n = 0; n <= maxSweep; n++) {
-      const n3 = totalUsers > 0 ? Math.round((n * evTotal3) / totalUsers) : 0;
-      const n5 = totalUsers > 0 ? n - n3 : 0;
-      const evLoad = (n3 * (scenario + inputs.bg3ev)) + (n5 * (scenario + inputs.bg5ev));
-      const bgLoad = ((inputs.flats3kw - n3) * inputs.bg3noev) + ((inputs.flats5kw - n5) * inputs.bg5noev);
-      const total = evLoad + bgLoad + commonLoad;
-      const pct = results.usable > 0 ? (total / results.usable) * 100 : 0;
+// 2. Enterprise SVG Radial Gauge (Theme-aware)
+function RadialGauge({ pct, size = 220 }: { pct: number; size?: number }) {
+  const R = size * 0.38;
+  const cx = size / 2;
+  const cy = size / 2;
+  const circ = 2 * Math.PI * R;
+  const clamped = Math.min(100, Math.max(0, pct));
+  const fill = (clamped / 100) * circ;
 
-      if (pct >= 100 && !tippingFound) { tippingFound = true; tippingAt = n; }
-
-      // Icon replacement logic
-      let status = { label: 'Safe', icon: CheckCircle2, bg: 'bg-[#d1fae5]', text: 'text-[#065f46]' };
-      if (pct >= 100) status = { label: 'Overload', icon: XOctagon, bg: 'bg-[#fee2e2]', text: 'text-[#991b1b]' };
-      else if (pct >= 90) status = { label: 'Warning', icon: AlertTriangle, bg: 'bg-[#ffe4b5]', text: 'text-[#7c3e00]' };
-      else if (pct >= 75) status = { label: 'Caution', icon: AlertCircle, bg: 'bg-[#fef3c7]', text: 'text-[#92400e]' };
-
-      tableRows.push({ n, evLoad, bgLoad, commonLoad, total, pct, status });
-    }
-    return { rows: tableRows, tippingAt, totalUsers };
-  }, [inputs, results, scenario]);
-
-  const currentPct = scenario === 3.3 ? results.tfpct33 : results.tfpct74;
-  const cappedPct = Math.min(currentPct, 100);
-  const themeColor = scenario === 3.3 ? '#0a6e5c' : '#c0392b';
-  const circumference = 301.6;
-  const strokeDashoffset = circumference - (cappedPct / 100) * circumference;
+  const colorClass = pct >= 100 ? "stroke-danger" : pct >= 85 ? "stroke-warning" : "stroke-emerald";
+  const textClass = pct >= 100 ? "fill-danger" : pct >= 85 ? "fill-warning" : "fill-emerald";
 
   return (
-    <div className="bg-[#1A1D26] rounded-xl border border-[#2D323F] shadow-lg overflow-hidden mt-6">
-      <div className="p-6 md:p-8 flex flex-col md:flex-row items-center gap-8 border-b border-[#2D323F]">
-        <div className="relative w-[120px] h-[120px] flex-shrink-0">
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r="48" fill="none" stroke="#0A0C12" strokeWidth="10" />
-            <circle cx="60" cy="60" r="48" fill="none" stroke={currentPct >= 100 ? '#EF4444' : currentPct >= 90 ? '#D97706' : '#10B981'} strokeWidth="10" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" className="transition-all duration-700 ease-out" />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center pt-1">
-            <span className="font-['Montserrat'] font-bold text-2xl text-[#e2e8f0]">{currentPct.toFixed(0)}%</span>
-            <span className="text-[10px] text-[#94A3B8] font-['DM_Sans']">of capacity</span>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="relative">
+      {/* Outer constraint ring */}
+      <circle cx={cx} cy={cy} r={R + 8} fill="none" strokeWidth="1" className="stroke-border/50" />
+      
+      {/* Background Track */}
+      <circle cx={cx} cy={cy} r={R} fill="none" strokeWidth="14" strokeLinecap="round" className="stroke-border" />
+      
+      {/* Dynamic Progress Arc */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={R}
+        fill="none"
+        strokeWidth="14"
+        strokeLinecap="round"
+        strokeDasharray={`${fill} ${circ}`}
+        transform={`rotate(-90 ${cx} ${cy})`}
+        className={cn(colorClass, "transition-all duration-700 ease-out")}
+        style={{ filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.1))" }}
+      />
+      
+      {/* Inner Hub */}
+      <circle cx={cx} cy={cy} r={R - 14} className="fill-card transition-colors duration-300" />
+      
+      {/* Data Readout */}
+      <text
+        x={cx}
+        y={cy - 4}
+        textAnchor="middle"
+        fontSize={size * 0.14}
+        className={cn(textClass, "font-mono font-bold transition-colors duration-300")}
+      >
+        {clamped.toFixed(1)}%
+      </text>
+      <text
+        x={cx}
+        y={cy + 16}
+        textAnchor="middle"
+        fontSize={size * 0.05}
+        letterSpacing="2"
+        className="fill-muted-foreground font-mono font-semibold"
+      >
+        CAPACITY
+      </text>
+    </svg>
+  );
+}
+
+/**
+ * Tipping Point Orchestrator
+ * Projects future grid strain based on sequential EV adoption.
+ */
+export function TippingPointChart({ scenario, inputs, results }: TippingPointProps) {
+  
+  // Dynamic variables mapped to the selected scenario
+  const isA = scenario === "A";
+  const chargerKW = isA ? 3.3 : 7.4;
+  const currentPct = isA ? results.capacityUsed33Pct : results.capacityUsed74Pct;
+  const currentTotal = isA ? results.totalSystemLoad33 : results.totalSystemLoad74;
+  const headroomEVs = isA ? results.maxConcurrentUsers33 : results.maxConcurrentUsers74;
+  
+  // Calculate average enhancement per user based on inputs (fallback to baseline if 0)
+  const avgEnhancement = isA 
+    ? (inputs.enh33_3kw || 2) * 0.7 
+    : (inputs.enh74_3kw || 7) * 0.7;
+
+  // Generate predictive table rows
+  const totalFlats = (inputs.flats3kw || 0) + (inputs.flats5kw || 0);
+  const maxRows = Math.max(50, totalFlats + 5);
+  const rows = buildTable(results.usableKW, results.baseActualDemand, avgEnhancement, maxRows);
+
+  const tippingRow = rows.find((r) => r.status === "OVERLOAD");
+  const tippingPoint = tippingRow ? tippingRow.n : null;
+
+  const isOverload = currentPct >= 100;
+  const isWarning = currentPct >= 85 && currentPct < 100;
+
+  // Semantic mappings
+  const accentColorClass = isA ? "bg-emerald" : "bg-danger";
+  const accentTextClass = isA ? "text-emerald" : "text-danger";
+  const scenLabel = isA ? "Scenario A — 3.3 kW AC Charging" : "Scenario B — 7.4 kW AC Charging";
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      
+      {/* Top section: Visualizations & Summaries */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Radial Gauge Panel */}
+        <Card className="flex flex-col items-center justify-center p-6">
+          <div className="flex items-center gap-2 mb-6 self-start">
+            <div className={cn("h-4 w-1 rounded-full", accentColorClass)} />
+            <h3 className={cn("text-xs font-semibold uppercase tracking-widest font-heading", accentTextClass)}>
+              {scenLabel}
+            </h3>
           </div>
-        </div>
-        <div className="flex-1 text-center md:text-left">
-          <h3 className="font-['Montserrat'] font-bold text-xl text-[#e2e8f0] mb-3 flex items-center justify-center md:justify-start gap-3">
-            {scenario} kW Scenario Load
-            {tippingAt !== null ? (
-              <span className="text-[10px] font-bold font-['JetBrains_Mono'] bg-[#EF4444] text-[#090A0F] px-3 py-1 rounded-md uppercase tracking-widest flex items-center gap-1"><XOctagon size={12} /> Overloads at {tippingAt} Users</span>
-            ) : (
-              <span className="text-[10px] font-bold font-['JetBrains_Mono'] bg-[#10B981] text-[#090A0F] px-3 py-1 rounded-md uppercase tracking-widest flex items-center gap-1"><CheckCircle2 size={12} /> Safe</span>
-            )}
-          </h3>
-          <p className="text-[13px] text-[#94A3B8] leading-relaxed">
-            {tippingAt !== null ? `Transformer capacity will fail at exactly ${tippingAt} concurrent users. With ${totalUsers} EV users registered, unmanaged charging is a severe risk.` : `The transformer remains within safe operational limits even if all ${totalUsers} active EV users charge simultaneously.`}
-          </p>
+
+          <RadialGauge pct={currentPct} size={240} />
+
+          <div className="mt-8 grid grid-cols-3 gap-4 w-full">
+            <div className="text-center">
+              <p className="text-xs tracking-wider text-muted-foreground mb-1">USABLE</p>
+              <p className="font-mono text-sm font-semibold">{results.usableKW.toFixed(1)} kW</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs tracking-wider text-muted-foreground mb-1">TOTAL LOAD</p>
+              <p className="font-mono text-sm font-semibold">{currentTotal.toFixed(1)} kW</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs tracking-wider text-muted-foreground mb-1">HEADROOM</p>
+              <p className={cn("font-mono text-sm font-semibold", isOverload ? "text-danger" : "text-emerald")}>
+                {Math.max(0, results.usableKW - currentTotal).toFixed(1)} kW
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Status & Analytics Panels */}
+        <div className="flex flex-col gap-4">
+          
+          {/* Main Status Banner */}
+          <Card className={cn(
+            "flex-1 border p-6 transition-colors duration-300",
+            isOverload ? "bg-danger/10 border-danger/30" 
+              : isWarning ? "bg-warning/10 border-warning/30" 
+              : "bg-emerald/10 border-emerald/30"
+          )}>
+            <div className="flex items-start gap-3">
+              {isOverload ? (
+                <XCircle className="text-danger shrink-0 mt-0.5" size={24} />
+              ) : isWarning ? (
+                <AlertTriangle className="text-warning shrink-0 mt-0.5" size={24} />
+              ) : (
+                <CheckCircle className="text-emerald shrink-0 mt-0.5" size={24} />
+              )}
+              <div>
+                <p className={cn(
+                  "font-heading font-semibold text-base tracking-wide",
+                  isOverload ? "text-danger" : isWarning ? "text-warning" : "text-emerald"
+                )}>
+                  {isOverload ? "TRANSFORMER OVERLOAD ACTIVE" 
+                    : isWarning ? "APPROACHING CRITICAL THRESHOLD" 
+                    : "SYSTEM OPERATING SAFELY"}
+                </p>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                  {isOverload ? "Current EV charging demand exceeds usable transformer capacity. Immediate load management required."
+                    : isWarning ? "Operating above the 85% safety threshold. Limited additional EV capacity available."
+                    : "The transformer infrastructure can accommodate current EV charging demand with headroom intact."}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Tipping Point Stat Block */}
+          <Card className="p-5 border-border">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={16} className="text-muted-foreground" />
+              <span className="text-xs tracking-widest uppercase text-muted-foreground font-semibold">Tipping Point Analysis</span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide">Max Safe EVs</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="font-mono text-3xl font-bold text-emerald">{headroomEVs}</p>
+                  <p className="text-xs font-mono text-muted-foreground">users</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide">Overload At</p>
+                <div className="flex items-baseline gap-2">
+                  <p className={cn("font-mono text-3xl font-bold", tippingPoint !== null ? "text-danger" : "text-muted-foreground")}>
+                    {tippingPoint !== null ? tippingPoint : "—"}
+                  </p>
+                  <p className="text-xs font-mono text-muted-foreground">users</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Charger Spec Block */}
+          <Card className="p-5 border-border bg-gray-50/50 dark:bg-obsidian">
+            <p className="text-xs tracking-widest uppercase text-muted-foreground font-semibold mb-2">Active Charger Specification</p>
+            <div className="flex items-baseline gap-2">
+              <span className={cn("font-mono text-2xl font-bold", accentTextClass)}>
+                {chargerKW}
+              </span>
+              <span className="text-sm text-muted-foreground">kW per EV session</span>
+            </div>
+            <p className="text-xs font-mono text-muted-foreground mt-1">
+              {isA ? "Mode 2 / Mode 3 — Standard AC" : "Mode 3 — Fast AC (IEC 62196)"}
+            </p>
+          </Card>
         </div>
       </div>
 
-      <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-[#090A0F] text-[#e2e8f0] sticky top-0 z-10">
-            <tr>
-              {['Users', 'EV Load', 'Background', 'Total Load', '% Capacity', 'Status'].map(h => (
-                <th key={h} className="py-4 px-6 text-[11px] font-semibold font-['JetBrains_Mono'] tracking-[1.5px] uppercase whitespace-nowrap">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="bg-[#1A1D26]">
-            {rows.map((row, idx) => (
-              <tr key={idx} className={`border-b border-[#2D323F] transition-colors ${row.pct >= 100 ? 'bg-[#EF4444]/5' : row.pct >= 90 ? 'bg-[#D97706]/5' : ''}`}>
-                <td className={`py-3 px-6 font-['JetBrains_Mono'] text-[13px] ${row.n === totalUsers && row.n > 0 ? 'font-bold text-[#e2e8f0]' : 'text-[#94A3B8]'}`}>{row.n}</td>
-                <td className="py-3 px-6 font-['JetBrains_Mono'] text-[13px] text-[#cbd5e1]">{row.evLoad.toFixed(1)} kW</td>
-                <td className="py-3 px-6 font-['JetBrains_Mono'] text-[13px] text-[#cbd5e1]">{row.bgLoad.toFixed(1)} kW</td>
-                <td className="py-3 px-6 font-['JetBrains_Mono'] text-[13px] text-[#e2e8f0] font-semibold">{row.total.toFixed(1)} kW</td>
-                <td className={`py-3 px-6 font-['JetBrains_Mono'] text-[13px] ${row.pct >= 100 ? 'text-[#EF4444] font-bold' : 'text-[#cbd5e1]'}`}>{row.pct.toFixed(1)}%</td>
-                <td className="py-3 px-6">
-                  <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                    row.status.label === 'Safe' ? 'bg-[#10B981]/15 text-[#10B981]' :
-                    row.status.label === 'Overload' ? 'bg-[#EF4444]/15 text-[#EF4444]' :
-                    row.status.label === 'Warning' ? 'bg-[#D97706]/15 text-[#D97706]' :
-                    'bg-[#60A5FA]/15 text-[#60A5FA]'
-                  }`}>
-                    <row.status.icon size={12} /> {row.status.label}
-                  </span>
-                </td>
+      {/* Data Grid Section */}
+      <Card className="overflow-hidden border-border shadow-sm">
+        <div className="px-6 py-4 border-b border-border bg-card flex items-center justify-between">
+          <h4 className="text-xs tracking-widest uppercase font-semibold font-heading">
+            Incremental Load Simulation Matrix
+          </h4>
+          <Badge variant="secondary" className="font-mono">{chargerKW} kW per EV</Badge>
+        </div>
+
+        <div className="overflow-auto max-h-[450px] scrollbar-thin">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-gray-50/95 dark:bg-[#121318]/95 backdrop-blur-sm border-b border-border z-10">
+              <tr>
+                {["EV USERS", "EV LOAD (kW)", "BACKGROUND (kW)", "TOTAL LOAD (kW)", "% CAPACITY", "STATUS"].map((h) => (
+                  <th key={h} className="px-6 py-3 text-left text-xs tracking-wider font-semibold text-muted-foreground uppercase">
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const isOver = row.status === "OVERLOAD";
+                const isWarn = row.status === "WARNING";
+                
+                return (
+                  <tr
+                    key={row.n}
+                    className={cn(
+                      "border-b border-border/50 transition-colors hover:bg-gray-50 dark:hover:bg-obsidian-surface/50",
+                      isOver ? "bg-danger/5 dark:bg-danger/10" : isWarn ? "bg-warning/5 dark:bg-warning/10" : ""
+                    )}
+                  >
+                    <td className="px-6 py-3 font-mono font-semibold">{row.n}</td>
+                    <td className="px-6 py-3 font-mono text-muted-foreground">{row.evLoad.toFixed(1)}</td>
+                    <td className="px-6 py-3 font-mono text-muted-foreground">{row.bgLoad.toFixed(1)}</td>
+                    <td className="px-6 py-3 font-mono">{row.totalLoad.toFixed(1)}</td>
+                    <td className={cn("px-6 py-3 font-mono font-semibold", isOver ? "text-danger" : isWarn ? "text-warning" : "text-emerald")}>
+                      {row.pct.toFixed(1)}%
+                    </td>
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className={cn("w-2 h-2 rounded-full", isOver ? "bg-danger" : isWarn ? "bg-warning" : "bg-emerald")} />
+                        <span className={cn("font-mono text-xs tracking-wider font-semibold", isOver ? "text-danger" : isWarn ? "text-warning" : "text-emerald")}>
+                          {row.status}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 }

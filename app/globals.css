@@ -1,48 +1,115 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
-
 @import "tailwindcss";
 
+/* 1. Enforce strict class-based Dark Mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  /* Premium Dark Theme - Quiet Luxury */
-  --color-obsidian: #090A0F;
-  --color-dark-charcoal: #121318;
-  --color-container: #1A1D26;
-  --color-border: #2D323F;
+  /* 2. Map fonts to the Next.js server-loaded variables */
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* 3. Base Dynamic Colors (These map to the Light/Dark root variables below) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  /* 4. Strict Semantic Brand Colors */
   --color-emerald: #10B981;
   --color-emerald-dark: #0A6E5C;
-  --color-silver: #94A3B8;
-  --color-amber: #D97706;
-  --color-crimson: #EF4444;
+  --color-danger: #EF4444;
+  --color-warning: #F59E0B;
   
-  /* Legacy (for backwards compatibility) */
-  --color-navy: #090A0F;
-  --color-teal: #10B981;
-  --color-gold: #10B981;
-  --color-red: #EF4444;
-  --color-surface: #090A0F;
+  --color-obsidian: #090A0F;
+  --color-obsidian-surface: #121318;
+  --color-obsidian-border: #2D323F;
+
+  /* 5. Enterprise Shadows */
+  --shadow-premium-light: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --shadow-premium-dark: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+  --shadow-glow-emerald: 0 0 15px rgba(16, 185, 129, 0.2);
 }
 
-/* Global Typography & Premium Styling */
-html {
-  scroll-behavior: smooth;
+/* Establish the Light vs Dark modes */
+@layer base {
+  :root {
+    --background: #FFFFFF;
+    --foreground: #090A0F;
+    --card: #FFFFFF;
+    --border: #E2E8F0;
+    --input: #E2E8F0;
+    --ring: #10B981;
+    --muted: #F1F5F9;
+    --muted-foreground: #64748B;
+  }
+
+  .dark {
+    --background: #090A0F;
+    --foreground: #e2e8f0;
+    --card: #121318;
+    --border: #2D323F;
+    --input: #2D323F;
+    --ring: #10B981;
+    --muted: #1E293B;
+    --muted-foreground: #94A3B8;
+  }
 }
 
-body {
-  background-color: var(--color-obsidian);
-  color: #e2e8f0;
-  font-family: 'DM Sans', sans-serif;
-  letter-spacing: 0.3px;
+/* Global Architecture Rules */
+@layer base {
+  * {
+    @apply border-border;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans transition-colors duration-300 ease-in-out;
+  }
+
+  ::selection {
+    @apply bg-emerald/90 text-white;
+  }
 }
 
-/* Selection styling */
-::selection {
-  background-color: var(--color-emerald);
-  color: white;
-}
+/* Premium Minimalist Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full transition-colors; }
+.dark ::-webkit-scrollbar-thumb { @apply bg-obsidian-border; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
+.dark ::-webkit-scrollbar-thumb:hover { @apply bg-gray-600; }
 
-/* Smooth transitions throughout */
-* {
-  transition-property: background-color, border-color, color, opacity;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 200ms;
+/* Add this to the bottom of app/globals.css */
+
+@media print {
+  /* Force browsers to print our specific background colors and badges */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Force Light Mode variables for the PDF to prevent invisible text / wasted black ink */
+  .dark {
+    --background: #FFFFFF;
+    --foreground: #090A0F;
+    --card: #FFFFFF;
+    --border: #E2E8F0;
+    --muted: #F1F5F9;
+    --muted-foreground: #64748B;
+  }
+  
+  /* Remove scrollbars from the print view entirely */
+  ::-webkit-scrollbar {
+    display: none;
+  }
 }
