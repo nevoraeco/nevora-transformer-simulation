@@ -19,19 +19,13 @@ import { WhyItMattersTab } from '../components/WhyItMatters';
 import ReportSuccess from '../components/ReportSuccess';
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
 
-type TabView = 'simulator' | 'tip33' | 'tip74' | 'summary' | 'whymatters';
-
 /**
  * Enterprise Application Orchestrator
- * Manages the high-level state flow, strict wizard progression, and the secure 
- * Google Apps Script export handshake for Nevora's FluxEngine.
+ * Manages the high-level state flow between the initialization gate, the primary simulator,
+ * and the final Google Apps Script export handshake.
  */
 export default function SimulatorApp() {
-  // Master Wizard State
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [activeTab, setActiveTab] = useState<TabView>('simulator');
-  
-  // Export State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<{ id: string; url: string } | null>(null);
 
@@ -40,7 +34,7 @@ export default function SimulatorApp() {
     communityName: '', 
     address: '', 
     totalFlats: '',
-    operatorId: ''
+    operatorId: '' 
   });
 
   // Phase 1: Engine Data (Strict Default Alignment)
@@ -73,12 +67,13 @@ export default function SimulatorApp() {
   const handleGenerateReport = async () => {
     setIsSubmitting(true);
     
+    // Construct the payload for the Apps Script bridging API
     const totalFlats = Number(inputs.flats3kw || 0) + Number(inputs.flats5kw || 0);
     const payload = { 
       ...communityData, 
       maxExtra33: results.maxConcurrentUsers33, 
       totalFlats,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(), 
     };
 
     try {
@@ -104,17 +99,18 @@ export default function SimulatorApp() {
   };
 
   return (
+    // The master wrapper enforces the background and foreground colors for the Theme Provider
     <div className="flex min-h-screen flex-col bg-background text-foreground transition-colors duration-300 ease-in-out selection:bg-emerald selection:text-white">
       
       {/* GLOBAL NAVIGATION HEADER */}
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md transition-colors duration-300 print:hidden">
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md transition-colors duration-300">
         <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-6 lg:px-8">
           
           {/* Brand Mark */}
           <div className="flex items-center gap-2 select-none">
             <Zap size={18} className="text-emerald" strokeWidth={2} />
             <span className="font-heading text-sm font-bold tracking-widest text-emerald uppercase">
-              Nevora FluxEngine
+              Nevora Ecovolt
             </span>
           </div>
           
@@ -143,9 +139,9 @@ export default function SimulatorApp() {
       </header>
 
       {/* MAIN VIEWPORT */}
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 py-8 md:px-8 md:py-12 print:m-0 print:p-0 print:max-w-none">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 py-8 md:px-8 md:py-12">
         
-        {/* PHASE 1: Assessment Initialization Gate */}
+        {/* PHASE 1: Community Gate */}
         {step === 1 && (
           <CommunityGate 
             communityData={communityData} 
@@ -158,78 +154,65 @@ export default function SimulatorApp() {
         {step === 2 && (
           <div className="animate-in fade-in zoom-in-[0.98] duration-500 rounded-xl border border-border bg-card shadow-sm dark:shadow-none overflow-hidden">
             
-            {/* Master Tab Orchestrator (Controlled) */}
-            <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TabView)} className="w-full">
+            {/* Master Tab Orchestrator */}
+            <Tabs defaultValue="simulator" className="w-full">
               
-              <div className="border-b border-border bg-muted/10 overflow-x-auto scrollbar-thin print:hidden">
+              {/* Scrollable Tab Header Row */}
+              <div className="border-b border-border bg-muted/10 overflow-x-auto scrollbar-thin">
                 <TabsList className="h-16 w-max justify-start rounded-none bg-transparent p-0 px-4 gap-2">
-                  <TabsTrigger value="simulator" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4">
+                  <TabsTrigger 
+                    value="simulator" 
+                    className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4"
+                  >
                     <Settings size={16} /> <span className="font-mono text-xs uppercase tracking-wider">Simulator</span>
                   </TabsTrigger>
-                  <TabsTrigger value="tip33" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4">
+                  <TabsTrigger 
+                    value="tip33" 
+                    className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4"
+                  >
                     <LineChart size={16} /> <span className="font-mono text-xs uppercase tracking-wider">3.3 kW Scenario</span>
                   </TabsTrigger>
-                  <TabsTrigger value="tip74" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4">
+                  <TabsTrigger 
+                    value="tip74" 
+                    className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4"
+                  >
                     <LineChart size={16} /> <span className="font-mono text-xs uppercase tracking-wider">7.4 kW Scenario</span>
                   </TabsTrigger>
-                  <TabsTrigger value="summary" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4">
+                  <TabsTrigger 
+                    value="summary" 
+                    className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4"
+                  >
                     <FileText size={16} /> <span className="font-mono text-xs uppercase tracking-wider">Executive Summary</span>
                   </TabsTrigger>
-                  <TabsTrigger value="whymatters" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4">
+                  <TabsTrigger 
+                    value="whymatters" 
+                    className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4"
+                  >
                     <Zap size={16} /> <span className="font-mono text-xs uppercase tracking-wider">Why It Matters</span>
                   </TabsTrigger>
                 </TabsList>
               </div>
 
-              {/* Individual Tab Viewports (With Navigation Callbacks) */}
+              {/* Individual Tab Viewports */}
               <div className="p-6 md:p-8">
                 <TabsContent value="simulator" className="mt-0 outline-none">
-                  <SimulatorUI 
-                    inputs={inputs} 
-                    setInputs={setInputs} 
-                    results={results}
-                    communityData={communityData} // Passed down for validation
-                    onNext={() => setActiveTab('tip33')}
-                    onPrev={() => setStep(1)}
-                  />
+                  <SimulatorUI inputs={inputs} setInputs={setInputs} results={results} />
                 </TabsContent>
                 
                 <TabsContent value="tip33" className="mt-0 outline-none">
-                  <TippingPointChart 
-                    scenario="A" 
-                    inputs={inputs} 
-                    results={results}
-                    onNext={() => setActiveTab('tip74')}
-                    onPrev={() => setActiveTab('simulator')}
-                  />
+                  <TippingPointChart scenario="A" inputs={inputs} results={results} />
                 </TabsContent>
                 
                 <TabsContent value="tip74" className="mt-0 outline-none">
-                  <TippingPointChart 
-                    scenario="B" 
-                    inputs={inputs} 
-                    results={results}
-                    onNext={() => setActiveTab('summary')}
-                    onPrev={() => setActiveTab('tip33')}
-                  />
+                  <TippingPointChart scenario="B" inputs={inputs} results={results} />
                 </TabsContent>
                 
                 <TabsContent value="summary" className="mt-0 outline-none">
-                  <SummaryTab 
-                    inputs={inputs} 
-                    results={results}
-                    onNext={() => setActiveTab('whymatters')}
-                    onPrev={() => setActiveTab('tip74')}
-                  />
+                  <SummaryTab inputs={inputs} results={results} />
                 </TabsContent>
                 
                 <TabsContent value="whymatters" className="mt-0 outline-none">
-                  <WhyItMattersTab 
-                    inputs={inputs} 
-                    results={results}
-                    onPrev={() => setActiveTab('summary')}
-                    onGenerate={handleGenerateReport}
-                  />
+                  <WhyItMattersTab inputs={inputs} results={results} />
                 </TabsContent>
               </div>
 
