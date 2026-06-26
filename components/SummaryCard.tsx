@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Download, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Download, CheckCircle, XCircle, AlertTriangle, ArrowLeft, ArrowRight } from "lucide-react";
 import { SimInputs, SimResults } from "../lib/calculator";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -10,46 +10,29 @@ import { cn } from "../lib/utils";
 interface SummaryTabProps {
   inputs: SimInputs;
   results: SimResults;
+  onNext: () => void;
+  onPrev: () => void;
 }
 
-// Helper component for the comparison matrix rows
+// Helper component for the comparison matrix rows (Mobile Optimized)
 function MetricRow({
-  label,
-  valueA,
-  valueB,
-  unit,
-  highlightA,
-  highlightB,
+  label, valueA, valueB, unit, highlightA, highlightB,
 }: {
-  label: string;
-  valueA: string | number;
-  valueB: string | number;
-  unit?: string;
-  highlightA?: "emerald" | "danger" | "warning" | null;
-  highlightB?: "emerald" | "danger" | "warning" | null;
+  label: string; valueA: string | number; valueB: string | number;
+  unit?: string; highlightA?: "emerald" | "danger" | "warning" | null; highlightB?: "emerald" | "danger" | "warning" | null;
 }) {
-  const colorMap = {
-    emerald: "text-emerald",
-    danger: "text-danger",
-    warning: "text-warning",
-  };
-
+  const colorMap = { emerald: "text-emerald", danger: "text-danger", warning: "text-warning" };
+  
   return (
     <tr className="border-b border-border/60 transition-colors hover:bg-muted/5">
-      <td className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-muted-foreground font-mono">
+      <td className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-medium uppercase tracking-wider text-muted-foreground font-mono whitespace-normal sm:whitespace-nowrap">
         {label}
       </td>
-      <td className={cn(
-        "px-6 py-4 font-mono text-sm font-semibold",
-        highlightA ? colorMap[highlightA] : "text-foreground"
-      )}>
-        {valueA} {unit && <span className="ml-1 text-xs font-normal text-muted-foreground">{unit}</span>}
+      <td className={cn("px-4 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold whitespace-nowrap", highlightA ? colorMap[highlightA] : "text-foreground")}>
+        {valueA} {unit && <span className="ml-1 text-[10px] sm:text-xs font-normal text-muted-foreground">{unit}</span>}
       </td>
-      <td className={cn(
-        "px-6 py-4 font-mono text-sm font-semibold",
-        highlightB ? colorMap[highlightB] : "text-foreground"
-      )}>
-        {valueB} {unit && <span className="ml-1 text-xs font-normal text-muted-foreground">{unit}</span>}
+      <td className={cn("px-4 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold whitespace-nowrap", highlightB ? colorMap[highlightB] : "text-foreground")}>
+        {valueB} {unit && <span className="ml-1 text-[10px] sm:text-xs font-normal text-muted-foreground">{unit}</span>}
       </td>
     </tr>
   );
@@ -57,16 +40,12 @@ function MetricRow({
 
 /**
  * Executive Summary Dashboard
- * Consolidates Phase 1 math engine outputs into a pristine, client-ready proposal matrix.
- * Fully optimized for native browser PDF Export via Tailwind print utilities.
+ * Consolidates dynamic math engine outputs into a pristine, client-ready proposal matrix.
+ * Fully optimized for native browser PDF Export via Tailwind print utilities and Mobile Swiping.
  */
-export function SummaryTab({ inputs, results }: SummaryTabProps) {
+export function SummaryTab({ inputs, results, onNext, onPrev }: SummaryTabProps) {
   
-  // Base Community Math
-  const totalFlats = (inputs.flats3kw || 0) + (inputs.flats5kw || 0);
-  const activeEVsA = (inputs.ev33_3kw || 0) + (inputs.ev33_5kw || 0);
-  const activeEVsB = (inputs.ev74_3kw || 0) + (inputs.ev74_5kw || 0);
-
+  // Calculate Headroom
   const headroomA = Math.max(0, results.usableKW - results.totalSystemLoad33);
   const headroomB = Math.max(0, results.usableKW - results.totalSystemLoad74);
 
@@ -80,9 +59,8 @@ export function SummaryTab({ inputs, results }: SummaryTabProps) {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 print:space-y-8">
       
-      {/* SECTION 1: Executive KPIs */}
-      {/* print:break-inside-avoid ensures this block stays together on the PDF */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 print:break-inside-avoid">
+      {/* SECTION 1: Executive KPIs (Graceful Mobile Degradation) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:break-inside-avoid">
         {[
           { label: "Total Rated Capacity", value: results.totalKVA.toFixed(0), unit: "kVA", color: "text-foreground" },
           { label: "Usable Load Envelope", value: results.usableKW.toFixed(1), unit: "kW", color: "text-emerald" },
@@ -94,13 +72,13 @@ export function SummaryTab({ inputs, results }: SummaryTabProps) {
             color: results.maxConcurrentUsers33 > 10 ? "text-emerald" : results.maxConcurrentUsers33 > 0 ? "text-warning" : "text-danger",
           },
         ].map((kpi) => (
-          <Card key={kpi.label} className="p-5 print:shadow-none print:border-border">
-            <p className="text-xs tracking-wider uppercase text-muted-foreground mb-2">{kpi.label}</p>
+          <Card key={kpi.label} className="p-4 sm:p-5 print:shadow-none print:border-border">
+            <p className="text-[10px] sm:text-xs tracking-wider uppercase text-muted-foreground mb-2">{kpi.label}</p>
             <div className="flex items-baseline gap-1.5">
-              <span className={cn("font-mono text-3xl font-bold", kpi.color)}>
+              <span className={cn("font-mono text-2xl sm:text-3xl font-bold", kpi.color)}>
                 {kpi.value}
               </span>
-              <span className="text-xs text-muted-foreground font-mono">{kpi.unit}</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground font-mono">{kpi.unit}</span>
             </div>
           </Card>
         ))}
@@ -108,11 +86,10 @@ export function SummaryTab({ inputs, results }: SummaryTabProps) {
 
       {/* SECTION 2: A vs B Comparison Matrix */}
       <Card className="overflow-hidden print:shadow-none print:break-inside-avoid print:border-border">
-        <div className="px-6 py-4 border-b border-border bg-card flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-b border-border bg-card flex items-center justify-between">
           <h3 className="text-xs tracking-widest uppercase font-semibold text-foreground font-heading">
             Scenario Comparison Manifest
           </h3>
-          {/* print:hidden ensures the export button doesn't actually print on the paper */}
           <Button 
             variant="outline" 
             size="sm" 
@@ -120,21 +97,21 @@ export function SummaryTab({ inputs, results }: SummaryTabProps) {
             className="h-8 gap-2 border-emerald/40 text-emerald hover:bg-emerald/10 hover:text-emerald dark:hover:text-emerald print:hidden"
           >
             <Download size={14} />
-            <span className="uppercase tracking-wider text-[10px] font-bold">Export PDF</span>
+            <span className="hidden sm:inline uppercase tracking-wider text-[10px] font-bold">Export PDF</span>
           </Button>
         </div>
 
-        {/* print:overflow-visible prevents the right side of the table from being cut off on A4 paper */}
-        <div className="overflow-x-auto print:overflow-visible">
-          <table className="w-full text-left print:w-full">
+        {/* Mobile Edge-to-Edge Swipe Container */}
+        <div className="w-full overflow-x-auto scrollbar-hide md:scrollbar-default print:overflow-visible">
+          <table className="w-full min-w-[700px] text-left print:w-full">
             <thead className="bg-muted/10 border-b border-border">
               <tr>
-                <th className="px-6 py-4 text-xs tracking-wider font-semibold text-muted-foreground font-mono">PARAMETER</th>
-                <th className="px-6 py-4 text-xs tracking-wider font-semibold font-mono">
+                <th className="px-4 sm:px-6 py-4 text-xs tracking-wider font-semibold text-muted-foreground font-mono">PARAMETER</th>
+                <th className="px-4 sm:px-6 py-4 text-xs tracking-wider font-semibold font-mono whitespace-nowrap">
                   <span className="text-emerald">SCENARIO A</span>
                   <span className="text-muted-foreground font-normal ml-2">— 3.3 kW</span>
                 </th>
-                <th className="px-6 py-4 text-xs tracking-wider font-semibold font-mono">
+                <th className="px-4 sm:px-6 py-4 text-xs tracking-wider font-semibold font-mono whitespace-nowrap">
                   <span className="text-danger">SCENARIO B</span>
                   <span className="text-muted-foreground font-normal ml-2">— 7.4 kW</span>
                 </th>
@@ -142,8 +119,11 @@ export function SummaryTab({ inputs, results }: SummaryTabProps) {
             </thead>
             <tbody>
               <MetricRow label="Charger Power Rating" valueA="3.3" valueB="7.4" unit="kW / EV" />
-              <MetricRow label="Total Residential Flats" valueA={totalFlats} valueB={totalFlats} unit="units" />
-              <MetricRow label="Simultaneous Active EVs" valueA={activeEVsA} valueB={activeEVsB} unit="sessions" />
+              
+              {/* Aggregated Engine Data */}
+              <MetricRow label="Total Residential Flats" valueA={results.totalFlats} valueB={results.totalFlats} unit="units" />
+              <MetricRow label="Simultaneous Active EVs" valueA={results.totalEVUsers33} valueB={results.totalEVUsers74} unit="sessions" />
+              
               <MetricRow label="EV Charging Load" valueA={results.evActualDemand33.toFixed(1)} valueB={results.evActualDemand74.toFixed(1)} unit="kW" />
               <MetricRow label="Background Community Load" valueA={results.baseActualDemand.toFixed(1)} valueB={results.baseActualDemand.toFixed(1)} unit="kW" />
               <MetricRow label="Total Combined Load" valueA={results.totalSystemLoad33.toFixed(1)} valueB={results.totalSystemLoad74.toFixed(1)} unit="kW" />
@@ -151,16 +131,13 @@ export function SummaryTab({ inputs, results }: SummaryTabProps) {
                 label="Usable Capacity" 
                 valueA={results.usableKW.toFixed(1)} 
                 valueB={results.usableKW.toFixed(1)} 
-                unit="kW" 
-                highlightA="emerald" 
-                highlightB="emerald" 
+                unit="kW" highlightA="emerald" highlightB="emerald" 
               />
               <MetricRow 
                 label="Capacity Utilisation" 
                 valueA={`${results.capacityUsed33Pct.toFixed(1)}%`} 
                 valueB={`${results.capacityUsed74Pct.toFixed(1)}%`} 
-                highlightA={colorA} 
-                highlightB={colorB} 
+                highlightA={colorA} highlightB={colorB} 
               />
               <MetricRow 
                 label="Available Headroom" 
@@ -183,7 +160,7 @@ export function SummaryTab({ inputs, results }: SummaryTabProps) {
         </div>
 
         {/* Matrix Status Footer */}
-        <div className="grid grid-cols-2 border-t border-border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 border-t border-border">
           {[
             { status: statusA, color: colorA },
             { status: statusB, color: colorB },
@@ -191,8 +168,8 @@ export function SummaryTab({ inputs, results }: SummaryTabProps) {
             <div
               key={i}
               className={cn(
-                "p-4 flex items-center gap-2",
-                i === 0 && "border-r border-border",
+                "p-4 flex items-center justify-center sm:justify-start gap-2",
+                i === 0 && "border-b sm:border-b-0 sm:border-r border-border",
                 color === "emerald" ? "bg-emerald/5" : color === "danger" ? "bg-danger/5" : "bg-warning/5"
               )}
             >
@@ -215,38 +192,52 @@ export function SummaryTab({ inputs, results }: SummaryTabProps) {
       </Card>
 
       {/* SECTION 3: Transformer Infrastructure Manifest */}
-      <Card className="p-6 print:shadow-none print:break-inside-avoid print:border-border">
-        <h4 className="text-xs tracking-widest uppercase font-semibold text-foreground mb-6 font-heading">
+      <Card className="p-4 sm:p-6 print:shadow-none print:break-inside-avoid print:border-border">
+        <h4 className="text-xs tracking-widest uppercase font-semibold text-foreground mb-4 sm:mb-6 font-heading">
           Transformer Asset Registry
         </h4>
         
         {inputs.numTransformers === 0 ? (
-          <p className="text-muted-foreground text-sm font-mono bg-muted/20 p-4 rounded-lg">
+          <p className="text-muted-foreground text-xs sm:text-sm font-mono bg-muted/20 p-4 rounded-lg text-center sm:text-left">
             No infrastructure assets configured.
           </p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
             {inputs.transformerKVAs.map((kva, i) => (
-              <div key={i} className="bg-card border border-border shadow-sm rounded-lg p-4 print:shadow-none">
-                <p className="text-muted-foreground text-xs font-mono uppercase mb-2">Transformer {i + 1}</p>
-                <p className="font-mono text-2xl font-bold text-emerald">
+              <div key={i} className="bg-card border border-border shadow-sm rounded-lg p-3 sm:p-4 print:shadow-none flex flex-col items-center sm:items-start">
+                <p className="text-muted-foreground text-[10px] sm:text-xs font-mono uppercase mb-1 sm:mb-2 text-center sm:text-left w-full">Tr {i + 1}</p>
+                <p className="font-mono text-xl sm:text-2xl font-bold text-emerald">
                   {kva || 0}
-                  <span className="text-muted-foreground text-xs font-normal ml-1">kVA</span>
+                  <span className="text-muted-foreground text-[10px] sm:text-xs font-normal ml-1">kVA</span>
                 </p>
               </div>
             ))}
           </div>
         )}
         
-        <div className="mt-6 pt-4 border-t border-border flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-          <span className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
+        <div className="mt-6 pt-4 border-t border-border flex flex-col sm:flex-row sm:justify-between items-center gap-2">
+          <span className="text-muted-foreground text-[10px] sm:text-xs font-mono uppercase tracking-wider text-center sm:text-left">
             Total Rated System Capacity
           </span>
-          <span className="font-mono text-xl font-bold text-foreground">
+          <span className="font-mono text-lg sm:text-xl font-bold text-foreground">
             {results.totalKVA.toFixed(0)} kVA
           </span>
         </div>
       </Card>
+
+      {/* WIZARD PAGINATION FOOTER */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-border mt-8 print:hidden">
+        <Button variant="ghost" onClick={onPrev} className="text-muted-foreground gap-2 w-full sm:w-auto">
+          <ArrowLeft size={16} /> Previous
+        </Button>
+        
+        <Button 
+          onClick={onNext} 
+          className="gap-2 w-full sm:w-auto font-heading tracking-wide uppercase font-bold bg-emerald text-white hover:bg-emerald/90 shadow-emerald/20"
+        >
+          Next: Why It Matters <ArrowRight size={16} />
+        </Button>
+      </div>
 
     </div>
   );

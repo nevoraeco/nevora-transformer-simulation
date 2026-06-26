@@ -1,5 +1,10 @@
 import { MetadataRoute } from 'next'
- 
+
+/**
+ * Enterprise Web App Manifest
+ * Instructs Android and Chromium devices on how to install, name, 
+ * and theme the application on the device home screen.
+ */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Nevora's FluxEngine",
@@ -11,16 +16,16 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#10B981',      // Emerald brand accent
     icons: [
       {
-        src: '/icon.png',
+        src: '/light-icon.png',
         sizes: '512x512',
         type: 'image/png',
-        purpose: "any",
+        purpose: 'any',
       },
       {
-        src: '/apple-icon.png',
-        sizes: '180x180',
+        src: '/dark-icon.png',
+        sizes: '512x512',
         type: 'image/png',
-        purpose: "any",
+        purpose: 'maskable', // Ensures perfect cropping on Android Adaptive Icons
       },
     ],
   }

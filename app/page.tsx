@@ -19,13 +19,19 @@ import { WhyItMattersTab } from '../components/WhyItMatters';
 import ReportSuccess from '../components/ReportSuccess';
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
 
+type TabView = 'simulator' | 'tip33' | 'tip74' | 'summary' | 'whymatters';
+
 /**
  * Enterprise Application Orchestrator
- * Manages the high-level state flow between the initialization gate, the primary simulator,
- * and the final Google Apps Script export handshake.
+ * Manages high-level dynamic state arrays, wizard progression, and the secure
+ * proposal export handshake for Nevora's FluxEngine platform.
  */
 export default function SimulatorApp() {
+  // Master Wizard State
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [activeTab, setActiveTab] = useState<TabView>('simulator');
+  
+  // Export State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<{ id: string; url: string } | null>(null);
 
@@ -34,46 +40,59 @@ export default function SimulatorApp() {
     communityName: '', 
     address: '', 
     totalFlats: '',
-    operatorId: '' 
+    operatorId: ''
   });
 
-  // Phase 1: Engine Data (Strict Default Alignment)
+  // Phase 1: Engine Data Structure (Strict Zero-Trust Initialization)
   const [inputs, setInputs] = useState<SimInputs>({
-    numTransformers: 0,
-    transformerKVAs: [],
+    numTransformers: 0, // Enforces intentional data entry
+    transformerKVAs: [], // Cleared to prevent dummy data propagation
     powerFactor: 0.9,
-    buffer: 15, // Default safety buffer
+    buffer: 15,
     sanctionedLoad: 0,
-    flats3kw: 0,
-    flats5kw: 0,
-    commonMeters: 0,
-    commonLoad: 0,
-    // Scenario A Defaults
-    enh33_3kw: 0,
-    ev33_3kw: 0,
-    enh33_5kw: 0,
-    ev33_5kw: 0,
-    // Scenario B Defaults
-    enh74_3kw: 0,
-    ev74_3kw: 0,
-    enh74_5kw: 0,
-    ev74_5kw: 0,
+    
+    // Dynamic array architectures replacing flat legacy items
+    flatTiers: [
+      { 
+        id: 'tier-3kw-default', 
+        sanctionedLoad: 3, 
+        count: 0, 
+        ev33: 0, 
+        enh33: 2, 
+        ev74: 0, 
+        enh74: 7 
+      },
+      { 
+        id: 'tier-5kw-default', 
+        sanctionedLoad: 5, 
+        count: 0, 
+        ev33: 0, 
+        enh33: 2, 
+        ev74: 0, 
+        enh74: 7 
+      }
+    ],
+    commonMeters: [
+      { 
+        id: 'meter-common-default', 
+        name: 'Common Area Load', 
+        load: 0 
+      }
+    ]
   });
 
-  // Compute metrics dynamically when inputs change
+  // Compute metrics dynamically via memory memoization layers
   const results = useMemo(() => calculateHeadroom(inputs), [inputs]);
 
   // Handle Serverless Export Pipeline
   const handleGenerateReport = async () => {
     setIsSubmitting(true);
     
-    // Construct the payload for the Apps Script bridging API
-    const totalFlats = Number(inputs.flats3kw || 0) + Number(inputs.flats5kw || 0);
     const payload = { 
       ...communityData, 
       maxExtra33: results.maxConcurrentUsers33, 
-      totalFlats,
-      timestamp: new Date().toISOString(), 
+      totalFlats: results.totalFlats,
+      timestamp: new Date().toISOString()
     };
 
     try {
@@ -99,18 +118,16 @@ export default function SimulatorApp() {
   };
 
   return (
-    // The master wrapper enforces the background and foreground colors for the Theme Provider
     <div className="flex min-h-screen flex-col bg-background text-foreground transition-colors duration-300 ease-in-out selection:bg-emerald selection:text-white">
       
       {/* GLOBAL NAVIGATION HEADER */}
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md transition-colors duration-300">
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md transition-colors duration-300 print:hidden">
         <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-6 lg:px-8">
           
-          {/* Brand Mark */}
+          {/* BRAND MARK */}
           <div className="flex items-center gap-2 select-none">
-            <Zap size={18} className="text-emerald" strokeWidth={2} />
-            <span className="font-heading text-sm font-bold tracking-widest text-emerald uppercase">
-              Nevora Ecovolt
+            <span className="font-heading text-base font-bold tracking-wide text-foreground">
+              Nevora's <span className="text-emerald">FluxEngine</span>
             </span>
           </div>
           
@@ -139,9 +156,9 @@ export default function SimulatorApp() {
       </header>
 
       {/* MAIN VIEWPORT */}
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 py-8 md:px-8 md:py-12">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 py-8 md:px-8 md:py-12 print:m-0 print:p-0 print:max-w-none">
         
-        {/* PHASE 1: Community Gate */}
+        {/* PHASE 1: Assessment Initialization Gate */}
         {step === 1 && (
           <CommunityGate 
             communityData={communityData} 
@@ -154,41 +171,50 @@ export default function SimulatorApp() {
         {step === 2 && (
           <div className="animate-in fade-in zoom-in-[0.98] duration-500 rounded-xl border border-border bg-card shadow-sm dark:shadow-none overflow-hidden">
             
-            {/* Master Tab Orchestrator */}
-            <Tabs defaultValue="simulator" className="w-full">
+            {/* Master Tab Orchestrator (Controlled) */}
+            <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TabView)} className="w-full">
               
-              {/* Scrollable Tab Header Row */}
-              <div className="border-b border-border bg-muted/10 overflow-x-auto scrollbar-thin">
-                <TabsList className="h-16 w-max justify-start rounded-none bg-transparent p-0 px-4 gap-2">
+              {/* Premium Swipable Menu with Kinetic Masking */}
+              <div className="border-b border-border bg-muted/10 overflow-x-auto scrollbar-hide fade-edges-x snap-x snap-mandatory scroll-smooth w-full print:hidden">
+                <TabsList className="h-16 w-max justify-start rounded-none bg-transparent p-0 px-6 gap-2">
                   <TabsTrigger 
                     value="simulator" 
-                    className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4"
+                    className="snap-start shrink-0 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4 transition-all duration-300"
                   >
-                    <Settings size={16} /> <span className="font-mono text-xs uppercase tracking-wider">Simulator</span>
+                    <Settings size={16} /> 
+                    <span className="font-mono text-xs uppercase tracking-wider">Simulator</span>
                   </TabsTrigger>
+                  
                   <TabsTrigger 
                     value="tip33" 
-                    className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4"
+                    className="snap-start shrink-0 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4 transition-all duration-300"
                   >
-                    <LineChart size={16} /> <span className="font-mono text-xs uppercase tracking-wider">3.3 kW Scenario</span>
+                    <LineChart size={16} /> 
+                    <span className="font-mono text-xs uppercase tracking-wider">3.3 kW Scenario</span>
                   </TabsTrigger>
+                  
                   <TabsTrigger 
                     value="tip74" 
-                    className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4"
+                    className="snap-start shrink-0 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4 transition-all duration-300"
                   >
-                    <LineChart size={16} /> <span className="font-mono text-xs uppercase tracking-wider">7.4 kW Scenario</span>
+                    <LineChart size={16} /> 
+                    <span className="font-mono text-xs uppercase tracking-wider">7.4 kW Scenario</span>
                   </TabsTrigger>
+                  
                   <TabsTrigger 
                     value="summary" 
-                    className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4"
+                    className="snap-start shrink-0 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4 transition-all duration-300"
                   >
-                    <FileText size={16} /> <span className="font-mono text-xs uppercase tracking-wider">Executive Summary</span>
+                    <FileText size={16} /> 
+                    <span className="font-mono text-xs uppercase tracking-wider">Executive Summary</span>
                   </TabsTrigger>
+                  
                   <TabsTrigger 
                     value="whymatters" 
-                    className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4"
+                    className="snap-start shrink-0 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-emerald data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald gap-2 px-4 transition-all duration-300"
                   >
-                    <Zap size={16} /> <span className="font-mono text-xs uppercase tracking-wider">Why It Matters</span>
+                    <Zap size={16} /> 
+                    <span className="font-mono text-xs uppercase tracking-wider">Why It Matters</span>
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -196,23 +222,52 @@ export default function SimulatorApp() {
               {/* Individual Tab Viewports */}
               <div className="p-6 md:p-8">
                 <TabsContent value="simulator" className="mt-0 outline-none">
-                  <SimulatorUI inputs={inputs} setInputs={setInputs} results={results} />
+                  <SimulatorUI 
+                    inputs={inputs} 
+                    setInputs={setInputs} 
+                    results={results}
+                    communityData={communityData}
+                    onNext={() => setActiveTab('tip33')}
+                    onPrev={() => setStep(1)}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="tip33" className="mt-0 outline-none">
-                  <TippingPointChart scenario="A" inputs={inputs} results={results} />
+                  <TippingPointChart 
+                    scenario="A" 
+                    inputs={inputs} 
+                    results={results}
+                    onNext={() => setActiveTab('tip74')}
+                    onPrev={() => setActiveTab('simulator')}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="tip74" className="mt-0 outline-none">
-                  <TippingPointChart scenario="B" inputs={inputs} results={results} />
+                  <TippingPointChart 
+                    scenario="B" 
+                    inputs={inputs} 
+                    results={results}
+                    onNext={() => setActiveTab('summary')}
+                    onPrev={() => setActiveTab('tip33')}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="summary" className="mt-0 outline-none">
-                  <SummaryTab inputs={inputs} results={results} />
+                  <SummaryTab 
+                    inputs={inputs} 
+                    results={results}
+                    onNext={() => setActiveTab('whymatters')}
+                    onPrev={() => setActiveTab('tip74')}
+                  />
                 </TabsContent>
                 
                 <TabsContent value="whymatters" className="mt-0 outline-none">
-                  <WhyItMattersTab inputs={inputs} results={results} />
+                  <WhyItMattersTab 
+                    inputs={inputs} 
+                    results={results}
+                    onPrev={() => setActiveTab('summary')}
+                    onGenerate={handleGenerateReport}
+                  />
                 </TabsContent>
               </div>
 
