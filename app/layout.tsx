@@ -47,7 +47,7 @@ export const viewport: Viewport = {
 // Defines SEO, dynamic favicons, and social media link unfurling
 // ---------------------------------------------------------
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://nevora-transformer-simulation.vercel.app/"),
   title: "Nevora FluxEngine",
   description: "Residential EV Infrastructure Simulation & Orchestration Engine",
   
