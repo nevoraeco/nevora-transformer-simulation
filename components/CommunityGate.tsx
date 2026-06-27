@@ -56,9 +56,9 @@ export default function CommunityGate({ communityData, setCommunityData, onNext 
                   className="flex h-10 w-full appearance-none rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground transition-all duration-200 ease-in-out focus-visible:border-emerald focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald dark:bg-card"
                 >
                   <option value="" disabled>Select Operator</option>
-                  <option value="Hemanth J. (CTO)">Nihaal - NT</option>
-                  <option value="Elvis J. (BD & Strategy)">Elvis - EJ</option>
-                  <option value="Nihaal (Operations)">Hemanth - HJ</option>
+                  <option value="Hemanth - HJ">Nihaal - NT</option>
+                  <option value="Elvis - EJ">Elvis - EJ</option>
+                  <option value="Nihaal - NT">Hemanth - HJ</option>
                 </select>
                 {/* Custom dropdown arrow */}
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground">
